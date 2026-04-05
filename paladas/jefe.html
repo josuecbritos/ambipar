@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Jefe de Planta — Ambipar</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00873D;
+    --green-dark: #006830;
+    --green-light: #e8f5ee;
+    --green-mid: #b8dfc8;
+    --white: #ffffff;
+    --gray-50: #f4f5f4;
+    --gray-100: #eaecea;
+    --gray-300: #c8cdc8;
+    --gray-500: #7a877a;
+    --gray-800: #1e271e;
+    --yellow: #f5a623;
+    --yellow-light: #fff8ee;
+    --red: #c0392b;
+    --red-light: #fdf0ee;
+    --shadow: 0 4px 24px rgba(0,87,40,0.13);
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; height: 100dvh; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--gray-50);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    width: 100%;
+    background: #BDFE00;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .topbar-logo { height: 28px; width: auto; display: block; }
+
+  .topbar-sep { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
+
+  .topbar-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e271e;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.3;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    width: calc(100% - 32px);
+    max-width: 420px;
+    margin: 16px 0;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* LABEL */
+  .label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+  }
+
+  /* ALERTA ÚLTIMA PALADA */
+  .alert-box {
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: background 0.4s, color 0.4s;
+  }
+
+  .alert-box.green  { background: var(--green-light); color: var(--green-dark); }
+  .alert-box.yellow { background: var(--yellow-light); color: #7a4f00; }
+  .alert-box.red    { background: var(--red-light);    color: var(--red); }
+
+  .alert-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+
+  .green  .alert-dot { background: var(--green); }
+  .yellow .alert-dot { background: var(--yellow); }
+  .red    .alert-dot { background: var(--red); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .stat-box {
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+
+  .stat-value {
+    font-family: 'Roboto Mono', monospace;
+    font-size: clamp(28px, 6vw, 40px);
+    font-weight: 500;
+    color: var(--green);
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  /* CHART */
+  .chart-section { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+
+  .chart-wrap {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    padding-bottom: 20px;
+    position: relative;
+    min-height: 0;
+  }
+
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    position: relative;
+  }
+
+  .bar {
+    width: 100%;
+    background: var(--green-mid);
+    border-radius: 4px 4px 0 0;
+    transition: height 0.4s ease;
+    min-height: 3px;
+    position: relative;
+  }
+
+  .bar.current { background: var(--yellow); }
+
+  .bar-count {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--gray-500);
+    margin-bottom: 2px;
+  }
+
+  .bar-label {
+    position: absolute;
+    bottom: -18px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--gray-500);
+    white-space: nowrap;
+  }
+
+  .chart-baseline {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--gray-100);
+  }
+
+  /* HISTORY */
+  .history-section { flex: 0 0 auto; }
+  .history-list { display: flex; flex-direction: column; gap: 5px; }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--green);
+    padding: 7px 10px 7px 10px;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .history-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+
+  .history-time {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--gray-800);
+    font-weight: 500;
+  }
+
+  .history-op {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--gray-500);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 10px 0;
+  }
+
+  /* SKELETON */
+  .skeleton {
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 6px;
+  }
+  .skeleton-stat  { height: 40px; margin-top: 4px; }
+  .skeleton-alert { height: 36px; }
+  .skeleton-item  { height: 44px; border-radius: var(--radius-sm); }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* STATUS */
+  .status-wrap { flex: 0 0 auto; text-align: center; }
+  .status-bar {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gray-400);
+    letter-spacing: 0.03em;
+  }
+  .status-bar.error { color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <img class="topbar-logo" src="https://raw.githubusercontent.com/josuecbritos/ambipar/main/paladas/ambipar-logo.png" alt="Ambipar">
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Vista Jefe de Planta<br>Clasificación Giri</div>
+</div>
+
+<div class="card">
+
+  <!-- ALERTA -->
+  <div>
+    <div class="label">Última palada</div>
+    <div class="alert-box green" id="alertBox">
+      <div class="alert-dot"></div>
+      <span id="alertText"><span class="skeleton skeleton-alert" style="width:180px;display:inline-block;"></span></span>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="label">Paladas hoy</div>
+      <div class="stat-value" id="statTotal"><div class="skeleton skeleton-stat"></div></div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Ritmo actual</div>
+      <div class="stat-value" id="statRitmo"><div class="skeleton skeleton-stat"></div></div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-section">
+    <div class="label">Paladas por hora</div>
+    <div class="chart-wrap" id="chartWrap">
+      <div class="chart-baseline"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-section">
+    <div class="label">Últimos registros del día</div>
+    <div class="history-list" id="historyList">
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-wrap">
+    <div class="status-bar" id="statusBar"></div>
+  </div>
+
+</div>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycby-R28J6WHvMln9BDGXViTngt5nqmnxbzB1PVGq5uyxbN7riMkT7Ob5jh-kUX15m4s/exec";
+  const TOKEN   = "paladas2026";
+
+  let registros = [];
+
+  // ── INIT ─────────────────────────────────────────
+  cargarDatos();
+  setInterval(cargarDatos, 30000);
+
+  // ── API ──────────────────────────────────────────
+  async function cargarDatos() {
+    try {
+      const res = await fetch(`${API_URL}?token=${TOKEN}`, { redirect: "follow" });
+      registros = await res.json();
+      actualizarUI();
+      setStatus("");
+    } catch (err) {
+      setStatus("Error al cargar datos");
+    }
+  }
+
+  // ── LÓGICA ───────────────────────────────────────
+  function esHoy(ts) {
+    return new Date(ts).toDateString() === new Date().toDateString();
+  }
+
+  function minutosDesde(ts) {
+    return Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  }
+
+  function tiempoEfectivoTranscurrido(hoy) {
+    if (hoy.length === 0) return 0;
+
+    const ahora = new Date();
+    const hoyBase = new Date(ahora);
+
+    // Inicio: mínimo entre 9:30 y la primera palada
+    const inicioPredefinido = new Date(hoyBase);
+    inicioPredefinido.setHours(9, 30, 0, 0);
+    const primerasPalada = new Date(hoy[0].timestamp);
+    const inicio = primerasPalada < inicioPredefinido ? primerasPalada : inicioPredefinido;
+
+    // Fin: máximo entre 18:00 y la última palada, pero no más que ahora
+    const finPredefinido = new Date(hoyBase);
+    finPredefinido.setHours(18, 0, 0, 0);
+    const ultimaPalada = new Date(hoy[hoy.length - 1].timestamp);
+    const finMaximo = ultimaPalada > finPredefinido ? ultimaPalada : finPredefinido;
+    const fin = ahora < finMaximo ? ahora : finMaximo;
+
+    // Tiempo total en minutos
+    let minutos = Math.max(0, (fin - inicio) / 60000);
+
+    // Descontar break fijo 12:30–13:30 si cae dentro del rango
+    const breakInicio = new Date(hoyBase);
+    breakInicio.setHours(12, 30, 0, 0);
+    const breakFin = new Date(hoyBase);
+    breakFin.setHours(13, 30, 0, 0);
+
+    if (fin > breakInicio && inicio < breakFin) {
+      const overlapInicio = inicio > breakInicio ? inicio : breakInicio;
+      const overlapFin    = fin < breakFin ? fin : breakFin;
+      minutos -= Math.max(0, (overlapFin - overlapInicio) / 60000);
+    }
+
+    return minutos;
+  }
+
+  function formatearFechaHora(ts) {
+    const d = new Date(ts);
+    const dia = String(d.getDate()).padStart(2, "0");
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const anio = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    const ss = String(d.getSeconds()).padStart(2, "0");
+    return `${dia}/${mes}/${anio} · ${hh}:${mm}:${ss}`;
+  }
+
+  // ── UI ───────────────────────────────────────────
+  function actualizarUI() {
+    const hoy = registros.filter(r => esHoy(r.timestamp));
+
+    // Alerta última palada
+    const alertBox  = document.getElementById("alertBox");
+    const alertText = document.getElementById("alertText");
+
+    if (hoy.length === 0) {
+      alertBox.className = "alert-box green";
+      alertText.textContent = "Sin registros hoy";
+    } else {
+      const ultimo = hoy[hoy.length - 1];
+      const mins   = minutosDesde(ultimo.timestamp);
+      let texto, clase;
+
+      if (mins < 10) {
+        clase  = "green";
+        texto  = `Hace ${mins} min — ${ultimo.operador}`;
+      } else if (mins < 20) {
+        clase  = "yellow";
+        texto  = `Sin actividad hace ${mins} min`;
+      } else {
+        clase  = "red";
+        const horas = Math.floor(mins / 60);
+        const restoMins = mins % 60;
+        texto  = horas > 0
+          ? `Sin actividad hace ${horas}h ${restoMins}min`
+          : `Sin actividad hace ${mins} min`;
+      }
+
+      alertBox.className = `alert-box ${clase}`;
+      alertText.textContent = texto;
+    }
+
+    // Total
+    document.getElementById("statTotal").textContent = hoy.length;
+
+    // Ritmo
+    const minEfectivos = tiempoEfectivoTranscurrido(hoy);
+    const ritmo = minEfectivos > 0
+      ? (hoy.length / (minEfectivos / 60)).toFixed(1)
+      : "—";
+    document.getElementById("statRitmo").textContent = ritmo === "—" ? "—" : `${ritmo}/h`;
+
+    // Gráfico
+    renderGrafico(hoy);
+
+    // Historial
+    const ultimos5 = hoy.slice(-5).reverse();
+    const lista = document.getElementById("historyList");
+
+    if (ultimos5.length === 0) {
+      lista.innerHTML = '<div class="empty-state">Sin registros hoy</div>';
+    } else {
+      lista.innerHTML = ultimos5.map(r => `
+        <div class="history-item">
+          <div class="history-info">
+            <span class="history-time">${formatearFechaHora(r.timestamp)}</span>
+            <span class="history-op">${r.operador}</span>
+          </div>
+        </div>`).join("");
+    }
+  }
+
+  function renderGrafico(hoy) {
+    const ahora      = new Date();
+    const horaActual = ahora.getHours();
+    const wrap       = document.getElementById("chartWrap");
+
+    // Rango de horas: desde la hora de inicio hasta la actual
+    // Inicio mínimo: hora de la primera palada o 9, lo que sea menor
+    let horaInicio = 9;
+    if (hoy.length > 0) {
+      const hPrimera = new Date(hoy[0].timestamp).getHours();
+      if (hPrimera < horaInicio) horaInicio = hPrimera;
+    }
+
+    const horasVisibles = [];
+    for (let h = horaInicio; h <= horaActual; h++) horasVisibles.push(h);
+
+    if (horasVisibles.length === 0) {
+      wrap.innerHTML = '<div class="chart-baseline"></div><div class="empty-state" style="width:100%;padding-bottom:20px;">Turno no iniciado</div>';
+      return;
+    }
+
+    // Contar paladas por hora
+    const conteo = {};
+    horasVisibles.forEach(h => conteo[h] = 0);
+    hoy.forEach(r => {
+      const h = new Date(r.timestamp).getHours();
+      if (conteo[h] !== undefined) conteo[h]++;
+    });
+
+    const maxVal = Math.max(...Object.values(conteo), 1);
+
+    wrap.innerHTML = '<div class="chart-baseline"></div>' +
+      horasVisibles.map(h => {
+        const val       = conteo[h];
+        const pct       = (val / maxVal) * 100;
+        const esCurrent = h === horaActual;
+        return `
+          <div class="bar-col">
+            <div class="bar-count">${val}</div>
+            <div class="bar ${esCurrent ? 'current' : ''}" style="height:${Math.max(pct, 2)}%"></div>
+            <div class="bar-label">${String(h).padStart(2,'0')}h</div>
+          </div>`;
+      }).join("");
+  }
+
+  function setStatus(msg) {
+    const bar = document.getElementById("statusBar");
+    bar.textContent = msg;
+    bar.className = "status-bar" + (msg ? " error" : "");
+  }
+</script>
+
+</body>
+</html>
