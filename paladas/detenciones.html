@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Detenciones — Ambipar</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00873D; --green-dark: #006830; --green-light: #e8f5ee; --green-mid: #b8dfc8;
+    --white: #ffffff; --gray-50: #f4f5f4; --gray-100: #eaecea; --gray-300: #c8cdc8;
+    --gray-500: #7a877a; --gray-800: #1e271e;
+    --yellow: #f5a623; --yellow-light: #fff8ee;
+    --red: #c0392b; --red-dark: #922b21; --red-light: #fdf0ee; --red-mid: #f1a9a0;
+    --shadow: 0 4px 24px rgba(0,87,40,0.13); --radius: 16px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; height: 100dvh; }
+  body { font-family: 'Montserrat', sans-serif; background: var(--gray-50); display: flex; flex-direction: column; align-items: center; overflow: hidden; }
+
+  .topbar { width: 100%; background: #BDFE00; padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .topbar-logo { height: 28px; width: auto; display: block; }
+  .topbar-sep { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
+  .topbar-title { font-size: 11px; font-weight: 700; color: #1e271e; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3; }
+
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); width: calc(100% - 32px); max-width: 420px; margin: 16px 0; padding: 16px 20px; display: flex; flex-direction: column; gap: 0; flex: 1; overflow: hidden; }
+  .label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 5px; }
+
+  /* ESTADO */
+  .estado-box { border-radius: var(--radius-sm); padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; flex-shrink: 0; margin-bottom: 10px; transition: background 0.4s, color 0.4s; }
+  .estado-box.andando  { background: var(--green-light); color: var(--green-dark); }
+  .estado-box.detenida { background: var(--red-light); color: var(--red); }
+  .estado-box.almuerzo { background: var(--yellow-light); color: #7a4f00; }
+  .estado-box.inactivo { background: var(--gray-100); color: var(--gray-500); }
+  .estado-box.alerta   { background: var(--red-light); color: var(--red); animation: parpadeoFondo 1s infinite; }
+  .estado-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; animation: pulse 2s infinite; }
+  .andando .estado-dot  { background: var(--green); }
+  .detenida .estado-dot { background: var(--red); }
+  .almuerzo .estado-dot { background: var(--yellow); }
+  .inactivo .estado-dot { background: var(--gray-300); animation: none; }
+  .alerta .estado-dot   { background: var(--red); }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+  @keyframes parpadeoFondo { 0%,100% { background: var(--red-light); } 50% { background: #f9d6d0; } }
+  @keyframes parpadeoBtn { 0%,100% { opacity: 1; border-color: var(--red); background: var(--red-light); } 50% { opacity: 0.6; border-color: var(--red-dark); background: #f9d6d0; } }
+  .estado-timer { font-family: 'Roboto Mono', monospace; font-size: 14px; font-weight: 500; margin-left: auto; display: none; }
+  .detenida .estado-timer { display: block; color: var(--red); }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; flex-shrink: 0; }
+  .stat-box { background: var(--gray-50); border-radius: var(--radius-sm); padding: 8px 12px; text-align: center; }
+  .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px; }
+  .stat-value { font-family: 'Roboto Mono', monospace; font-size: clamp(28px, 6vw, 40px); font-weight: 500; line-height: 1; margin-top: 2px; }
+  .stat-value.red { color: var(--red); }
+  .stat-value.green { color: var(--green); }
+
+  /* BOTONES */
+  .section-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 0 0 90px; margin-bottom: 10px; }
+  .btn-accion { border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: background 0.15s, transform 0.1s, opacity 0.2s; user-select: none; outline: none; border: 2px solid transparent; height: 100%; }
+  .btn-accion:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-accion:not(:disabled):active { transform: scale(0.96); }
+  .btn-parar { background: var(--red-light); border-color: var(--red-mid); }
+  .btn-parar.activo { background: var(--red); border-color: var(--red-dark); }
+  .btn-andar { background: var(--green-light); border-color: var(--green-mid); }
+  .btn-andar.activo { background: var(--green); border-color: var(--green-dark); }
+  .btn-icono { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
+  .btn-parar .btn-icono { background: var(--red); }
+  .btn-parar.activo .btn-icono { background: rgba(255,255,255,0.2); box-shadow: none; }
+  .btn-andar .btn-icono { background: var(--green); }
+  .btn-andar.activo .btn-icono { background: rgba(255,255,255,0.2); box-shadow: none; }
+  .btn-texto { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; text-align: center; line-height: 1.2; }
+  .btn-parar .btn-texto { color: var(--red); }
+  .btn-parar.activo .btn-texto { color: var(--white); }
+  .btn-andar .btn-texto { color: var(--green); }
+  .btn-andar.activo .btn-texto { color: var(--white); }
+
+  /* HITOS */
+  .section-hitos { flex: 0 0 auto; margin-bottom: 10px; }
+  .hitos-row { display: flex; gap: 8px; }
+  .btn-hito { flex: 1; border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); background: var(--gray-50); padding: 10px 6px; text-align: center; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; color: var(--gray-800); cursor: pointer; text-transform: uppercase; letter-spacing: 0.03em; transition: background 0.15s, opacity 0.2s; }
+  .btn-hito:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-hito:not(:disabled):active { background: var(--gray-300); }
+  .btn-hito.done { background: var(--green-light); border-color: var(--green-mid); color: var(--green-dark); opacity: 0.6; }
+  .btn-hito.alerta { animation: parpadeoBtn 1s infinite; color: var(--red); font-weight: 800; }
+
+  /* CAUSA */
+  .section-causa { flex: 0 0 auto; margin-bottom: 8px; }
+  .section-causa.oculta { display: none; }
+  .causa-hint { font-size: 10px; color: var(--gray-500); font-weight: 500; margin-top: 4px; }
+  .causa-hint.warning { color: var(--red); font-weight: 700; }
+  .select-wrapper { position: relative; }
+  select { width: 100%; appearance: none; background: var(--gray-50); border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm); padding: 10px 40px 10px 14px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; color: var(--gray-800); cursor: pointer; outline: none; }
+  select:focus { border-color: var(--red); }
+  .select-arrow { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--gray-500); }
+
+  /* ERROR */
+  .error-msg { font-size: 11px; font-weight: 700; color: var(--red); background: var(--red-light); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 8px; display: none; }
+  .error-msg.visible { display: block; }
+
+  /* HISTORIAL */
+  .history-section { flex: 1 1 auto; display: flex; flex-direction: column; gap: 5px; min-height: 0; }
+  .history-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+  .history-item { display: flex; align-items: center; background: var(--gray-50); border-radius: var(--radius-sm); padding: 6px 10px; animation: slideIn 0.2s ease; flex-shrink: 0; border-left: 3px solid var(--gray-300); }
+  .history-item.det { border-left-color: var(--red); }
+  .history-item.ok { border-left-color: var(--green); }
+  @keyframes slideIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+  .history-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+  .history-time { font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--gray-800); font-weight: 500; }
+  .history-desc { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; }
+  .history-desc .h-tipo { color: var(--gray-500); }
+  .history-desc .h-causa { color: var(--red); margin-left: 4px; }
+  .history-desc .h-ok { color: var(--green); margin-left: 4px; }
+  .history-dur { font-family: 'Roboto Mono', monospace; font-size: 11px; font-weight: 500; color: var(--gray-500); margin-left: 8px; }
+  .empty-state { text-align: center; color: var(--gray-500); font-size: 11px; font-weight: 600; padding: 8px 0; }
+
+  .status-wrap { flex: 0 0 auto; margin-top: 6px; text-align: center; }
+  .status-bar { font-size: 10px; font-weight: 600; color: var(--gray-500); min-height: 14px; }
+  .status-bar.error { color: var(--red); }
+  .status-bar.ok { color: var(--green); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 100;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-box {
+    background: var(--white); border-radius: var(--radius); padding: 24px 20px;
+    width: 100%; max-width: 360px; box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal-icon { text-align: center; font-size: 36px; margin-bottom: 8px; }
+  .modal-title { font-size: 16px; font-weight: 800; color: var(--red); text-align: center; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .modal-subtitle { font-size: 12px; font-weight: 600; color: var(--gray-500); text-align: center; margin-bottom: 16px; }
+  .modal-select { position: relative; }
+  .modal-select select { width: 100%; appearance: none; background: var(--gray-50); border: 2px solid var(--red-mid); border-radius: var(--radius-sm); padding: 14px 40px 14px 14px; font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 600; color: var(--gray-800); cursor: pointer; outline: none; }
+  .modal-select select:focus { border-color: var(--red); }
+  .modal-select .select-arrow { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--gray-500); }
+
+  .skeleton { background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
+  .skeleton-item { height: 38px; border-radius: var(--radius-sm); }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <img class="topbar-logo" src="https://raw.githubusercontent.com/josuecbritos/ambipar/main/paladas/ambipar-logo.png" alt="Ambipar">
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Detenciones de Línea<br>Clasificación Giri</div>
+</div>
+
+<div class="card">
+  <div class="estado-box inactivo" id="estadoBox">
+    <div class="estado-dot"></div>
+    <span id="estadoTexto">Cargando...</span>
+    <span class="estado-timer" id="timerValor">00:00</span>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">Detenciones hoy</div>
+      <div class="stat-value red" id="counter"><div class="skeleton" style="width:50px;height:36px;margin:0 auto;"></div></div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Horas trabajadas</div>
+      <div class="stat-value green" id="horasTrabajadas"><div class="skeleton" style="width:50px;height:36px;margin:0 auto;"></div></div>
+    </div>
+  </div>
+
+  <div class="section-hitos">
+    <div class="label">Control de turno</div>
+    <div class="hitos-row">
+      <button class="btn-hito" id="btnInicioAM" onclick="registrarHito('inicio_am')">Iniciar Turno</button>
+      <button class="btn-hito" id="btnAlmuerzo" onclick="registrarHito('almuerzo_inicio')" disabled>Parada Almuerzo</button>
+      <button class="btn-hito" id="btnInicioPM" onclick="registrarHito('inicio_pm')" disabled>Arranque Post Almuerzo</button>
+      <button class="btn-hito" id="btnFin" onclick="registrarHito('fin_turno')" disabled>Fin Turno</button>
+    </div>
+  </div>
+
+  <div class="section-buttons">
+    <button class="btn-accion btn-parar" id="btnParar" onclick="detenerLinea()" disabled>
+      <div class="btn-icono"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></div>
+      <div class="btn-texto">Registrar Detención</div>
+    </button>
+    <button class="btn-accion btn-andar" id="btnAndar" onclick="reanudarLinea()" disabled>
+      <div class="btn-icono"><svg width="20" height="20" fill="white" viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg></div>
+      <div class="btn-texto">Reanudar Línea</div>
+    </button>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="section-causa oculta" id="seccionCausa">
+    <div class="label" id="causaLabel">Causa de detención actual</div>
+    <div class="select-wrapper">
+      <select id="causa" onchange="onCausaChange()">
+        <option value="">— Seleccione la causa —</option>
+        <option value="Atoro 2D">Atoro 2D</option>
+        <option value="Atoro 3D">Atoro 3D</option>
+        <option value="Atoro Separador Balístico">Atoro Separador Balístico</option>
+        <option value="Falla mecánica línea">Falla mecánica línea</option>
+        <option value="Falta Faresín">Falta Faresín</option>
+        <option value="Otros">Otros</option>
+      </select>
+      <div class="select-arrow"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+    </div>
+    <div class="causa-hint" id="causaHint"></div>
+  </div>
+
+  <div class="history-section">
+    <div class="label">Historial de hoy</div>
+    <div class="history-list" id="historyList">
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+    </div>
+  </div>
+
+  <div class="status-wrap"><div class="status-bar" id="statusBar"></div></div>
+</div>
+
+<!-- MODAL CAUSA HITO -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title" id="modalTitle">Inicio tardío</div>
+    <div class="modal-subtitle">Seleccione la causa para continuar</div>
+    <div class="modal-select">
+      <select id="modalCausa" onchange="onModalCausaChange()">
+        <option value="">— Seleccione la causa —</option>
+        <option value="Atoro 2D">Atoro 2D</option>
+        <option value="Atoro 3D">Atoro 3D</option>
+        <option value="Atoro Separador Balístico">Atoro Separador Balístico</option>
+        <option value="Falla mecánica línea">Falla mecánica línea</option>
+        <option value="Falta Faresín">Falta Faresín</option>
+        <option value="Otros">Otros</option>
+      </select>
+      <div class="select-arrow"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbzt1cgYMbnxYipyVXG0qrVL6TpacbdM5DxAJSNG8kPBjkX9mlQYFyZ8MFabQDlrzsM/exec";
+  const TOKEN = "paladas2026";
+  const HORARIOS = { inicio_am: {h:9,m:30}, almuerzo_inicio: {h:12,m:30}, inicio_pm: {h:13,m:30}, fin_turno: {h:18,m:0} };
+  const MARGEN = 5;
+  const HITO_LABELS = { inicio_am: "Inicio turno", almuerzo: "Parada almuerzo", inicio_pm: "Arranque post almuerzo", fin_turno: "Fin turno", detencion: "Detención" };
+  const HITO_BTN_IDS = { inicio_am: "btnInicioAM", almuerzo_inicio: "btnAlmuerzo", inicio_pm: "btnInicioPM", fin_turno: "btnFin" };
+
+  let registros = [], detencionActual = null, hitoPendienteTipo = null, timerInterval = null, estado = "sin_turno";
+
+  window.addEventListener("DOMContentLoaded", cargarDatos);
+
+  async function cargarDatos() {
+    try {
+      const res = await fetch(`${API_URL}?token=${TOKEN}`, { redirect: "follow" });
+      registros = await res.json();
+      detectarEstadoInicial();
+      actualizarUI();
+    } catch (err) { setStatus("Error al cargar datos", "error"); }
+  }
+
+  async function enviar(body) {
+    try { await fetch(`${API_URL}?token=${TOKEN}`, { method: "POST", redirect: "follow", body: JSON.stringify(body) }); }
+    catch (err) { setStatus("Error de conexión", "error"); }
+  }
+
+  function detectarEstadoInicial() {
+    const hoy = registrosHoy();
+    if (hoy.length === 0) { estado = "sin_turno"; return; }
+    const tieneInicioAM = hoy.some(r => r.tipo === "inicio_am");
+    const tieneAlmuerzo = hoy.find(r => r.tipo === "almuerzo");
+    const tieneInicioPM = hoy.some(r => r.tipo === "inicio_pm");
+    const tieneFin = hoy.some(r => r.tipo === "fin_turno");
+    if (tieneFin) { estado = "turno_fin"; return; }
+    const dets = hoy.filter(r => r.tipo === "detencion");
+    const ultimaDet = dets[dets.length - 1];
+    if (ultimaDet && !ultimaDet.fin) {
+      detencionActual = { id: ultimaDet.id, inicio: ultimaDet.inicio, causa: ultimaDet.causa || "" };
+      estado = "detenida"; iniciarTimer();
+      setTimeout(() => { mostrarCausa("Causa de detención actual"); hint("Seleccione la causa en cualquier momento durante la detención", false); }, 100);
+      return;
+    }
+    if (tieneAlmuerzo && !tieneAlmuerzo.fin) {
+      detencionActual = { id: tieneAlmuerzo.id, inicio: tieneAlmuerzo.inicio, causa: "Almuerzo" };
+      estado = "almuerzo"; return;
+    }
+    if (tieneInicioPM) { estado = "operando"; return; }
+    if (tieneAlmuerzo && tieneAlmuerzo.fin) { estado = "operando"; return; }
+    if (tieneInicioAM) { estado = "operando"; return; }
+    estado = "sin_turno";
+  }
+
+  // ── HITOS ──────────────────────────────────────
+  function registrarHito(tipo) {
+    const ahora = new Date();
+    const necesita = requiereCausa(tipo, ahora);
+    if (necesita && !hitoPendienteTipo) {
+      hitoPendienteTipo = tipo;
+      const titles = { inicio_am: "Inicio tardío", inicio_pm: "Reanudación tardía", almuerzo_inicio: "Almuerzo anticipado", fin_turno: "Fin anticipado" };
+      abrirModal(titles[tipo] || "Desvío detectado");
+      return;
+    }
+    const causa = hitoPendienteTipo ? document.getElementById("modalCausa").value : "";
+    hitoPendienteTipo = null;
+    cerrarModal();
+
+    if (tipo === "almuerzo_inicio") {
+      const id = crypto.randomUUID(), inicio = ahora.toISOString();
+      detencionActual = { id, inicio, causa: "Almuerzo" };
+      registros.push({ id, inicio, fin: "", duracion_min: "", causa: causa || "", tipo: "almuerzo" });
+      estado = "almuerzo"; actualizarUI();
+      enviar({ accion: "inicio", id, inicio, causa: causa || "", tipo: "almuerzo" });
+      setStatus("✓ Almuerzo registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
+      return;
+    }
+    if (tipo === "inicio_pm" && detencionActual && estado === "almuerzo") {
+      const fin = ahora.toISOString(), dur = Math.round((new Date(fin) - new Date(detencionActual.inicio)) / 60000);
+      actualizarRegistroLocal(detencionActual.id, fin, dur);
+      enviar({ accion: "fin", id: detencionActual.id, fin, duracion_min: dur });
+      detencionActual = null;
+    }
+    const id = crypto.randomUUID();
+    registros.push({ id, inicio: ahora.toISOString(), fin: "", duracion_min: "", causa, tipo });
+    if (tipo === "inicio_am" || tipo === "inicio_pm") estado = "operando";
+    if (tipo === "fin_turno") estado = "turno_fin";
+    actualizarUI();
+    enviar({ accion: "hito", id, timestamp: ahora.toISOString(), tipo, causa });
+    setStatus("✓ Registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
+  }
+
+  function requiereCausa(tipo, ahora) {
+    const h = HORARIOS[tipo], ref = new Date(ahora); ref.setHours(h.h, h.m, 0, 0);
+    const m = MARGEN * 60000;
+    if (tipo === "inicio_am" || tipo === "inicio_pm") return ahora > new Date(ref.getTime() + m);
+    if (tipo === "almuerzo_inicio" || tipo === "fin_turno") return ahora < new Date(ref.getTime() - m);
+    return false;
+  }
+
+  // ── DETENCIONES ────────────────────────────────
+  function detenerLinea() {
+    if (detencionActual || estado !== "operando") return;
+    const id = crypto.randomUUID(), inicio = new Date().toISOString();
+    detencionActual = { id, inicio, causa: "" };
+    estado = "detenida"; actualizarUI(); iniciarTimer();
+    mostrarCausa("Causa de detención actual");
+    hint("Seleccione la causa en cualquier momento durante la detención", false);
+    enviar({ accion: "inicio", id, inicio, causa: "", tipo: "detencion" });
+    setStatus("✓ Detención registrada", "ok"); setTimeout(() => setStatus("",""), 2000);
+  }
+
+  function reanudarLinea() {
+    if (!detencionActual || estado !== "detenida") return;
+    if (!detencionActual.causa) { mostrarError("Debe seleccionar una causa antes de reanudar la línea"); return; }
+    const fin = new Date().toISOString(), dur = Math.round((new Date(fin) - new Date(detencionActual.inicio)) / 60000);
+    const id = detencionActual.id, causa = detencionActual.causa;
+    registros.push({ id, inicio: detencionActual.inicio, fin, duracion_min: dur, causa, tipo: "detencion" });
+    detencionActual = null; detenerTimer(); estado = "operando"; ocultarCausa(); actualizarUI();
+    enviar({ accion: "fin", id, fin, duracion_min: dur, causa });
+    setStatus("✓ Línea reanudada", "ok"); setTimeout(() => setStatus("",""), 2000);
+  }
+
+  // ── CAUSA ──────────────────────────────────────
+  function onCausaChange() {
+    const causa = document.getElementById("causa").value;
+    document.getElementById("errorMsg").classList.remove("visible");
+    if (detencionActual && estado === "detenida") { detencionActual.causa = causa; enviar({ accion: "causa", id: detencionActual.id, causa }); }
+  }
+  function onModalCausaChange() {
+    const causa = document.getElementById("modalCausa").value;
+    if (causa && hitoPendienteTipo) { registrarHito(hitoPendienteTipo); }
+  }
+  function abrirModal(title) {
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalCausa").value = "";
+    document.getElementById("modalOverlay").classList.add("visible");
+  }
+  function cerrarModal() {
+    document.getElementById("modalOverlay").classList.remove("visible");
+    document.getElementById("modalCausa").value = "";
+  }
+  function mostrarCausa(label) {
+    document.getElementById("seccionCausa").classList.remove("oculta");
+    document.getElementById("causaLabel").textContent = label;
+    document.getElementById("causa").value = detencionActual?.causa || "";
+  }
+  function hint(txt, warn) {
+    const el = document.getElementById("causaHint"); el.textContent = txt;
+    el.className = warn ? "causa-hint warning" : "causa-hint";
+  }
+  function ocultarCausa() {
+    document.getElementById("seccionCausa").classList.add("oculta");
+    document.getElementById("causa").value = "";
+    document.getElementById("causaHint").textContent = "";
+    document.getElementById("causaHint").className = "causa-hint";
+  }
+
+  // ── TIMER ──────────────────────────────────────
+  function iniciarTimer() { detenerTimer(); timerInterval = setInterval(actualizarTimer, 1000); actualizarTimer(); }
+  function detenerTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
+  function actualizarTimer() {
+    if (!detencionActual) return;
+    const s = Math.floor((Date.now() - new Date(detencionActual.inicio).getTime()) / 1000);
+    document.getElementById("timerValor").textContent = String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+    document.getElementById("horasTrabajadas").textContent = calcularHorasTrabajadas(registrosHoy());
+  }
+
+  // ── HELPERS ────────────────────────────────────
+  function registrosHoy() { return registros.filter(r => esHoy(r.inicio || r.timestamp)); }
+  function esHoy(ts) { return ts && new Date(ts).toDateString() === new Date().toDateString(); }
+  function fH(ts) { const d = new Date(ts); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
+  function actualizarRegistroLocal(id, fin, dur) { const r = registros.find(x => x.id === id); if (r) { r.fin = fin; r.duracion_min = dur; } }
+  function calcularHorasTrabajadas(hoy) {
+    const ini = hoy.find(r => r.tipo === "inicio_am"); if (!ini) return "—";
+    const tsI = new Date(ini.inicio || ini.timestamp);
+    const fin = hoy.find(r => r.tipo === "fin_turno");
+    const tsF = fin ? new Date(fin.inicio || fin.timestamp) : new Date();
+    let detMin = 0;
+    hoy.filter(r => (r.tipo === "detencion" || r.tipo === "almuerzo") && r.fin).forEach(r => { detMin += Number(r.duracion_min) || 0; });
+    if (detencionActual && estado === "detenida") detMin += (Date.now() - new Date(detencionActual.inicio).getTime()) / 60000;
+    const t = Math.max(0, (tsF - tsI) / 60000 - detMin);
+    return `${String(Math.floor(t/60)).padStart(2,"0")}:${String(Math.floor(t%60)).padStart(2,"0")}`;
+  }
+  function mostrarError(msg) { const e = document.getElementById("errorMsg"); e.textContent = "⚠ " + msg; e.classList.add("visible"); setTimeout(() => e.classList.remove("visible"), 4000); }
+  function setStatus(msg, t) { const b = document.getElementById("statusBar"); b.textContent = msg; b.className = "status-bar" + (t ? ` ${t}` : ""); }
+
+  // ── UI ─────────────────────────────────────────
+  function actualizarUI() {
+    const hoy = registrosHoy(), dets = hoy.filter(r => r.tipo === "detencion"), cerradas = dets.filter(r => r.fin), ld = estado === "detenida";
+
+    // Estado bar
+    const box = document.getElementById("estadoBox"), txt = document.getElementById("estadoTexto");
+    const cl = { sin_turno: "inactivo", operando: "andando", detenida: "detenida", almuerzo: "almuerzo", turno_fin: "inactivo" };
+    const tx = { sin_turno: "Turno no iniciado", operando: "Línea en operación", detenida: "Línea detenida", almuerzo: "Pausa almuerzo", turno_fin: "Turno finalizado" };
+    box.className = "estado-box " + (cl[estado] || "inactivo"); txt.textContent = tx[estado] || "";
+
+    // Stats
+    document.getElementById("counter").textContent = cerradas.length + (ld ? 1 : 0);
+    document.getElementById("horasTrabajadas").textContent = calcularHorasTrabajadas(hoy);
+
+    // Hitos
+    const tIA = hoy.some(r => r.tipo === "inicio_am"), tAl = hoy.some(r => r.tipo === "almuerzo"), tIP = hoy.some(r => r.tipo === "inicio_pm"), tF = hoy.some(r => r.tipo === "fin_turno");
+
+    setHitoBtn("btnInicioAM", !tIA && estado === "sin_turno", tIA);
+    setHitoBtn("btnAlmuerzo", tIA && !tAl && estado === "operando", tAl);
+    setHitoBtn("btnInicioPM", tAl && !tIP && estado === "almuerzo", tIP);
+    setHitoBtn("btnFin", tIP && !tF && estado === "operando", tF);
+
+    // Botones detención
+    const bP = document.getElementById("btnParar"), bA = document.getElementById("btnAndar");
+    if (estado === "operando") { bP.disabled = false; bP.classList.remove("activo"); bA.disabled = true; bA.classList.add("activo"); }
+    else if (estado === "detenida") { bP.disabled = true; bP.classList.add("activo"); bA.disabled = false; bA.classList.remove("activo"); }
+    else { bP.disabled = true; bP.classList.remove("activo"); bA.disabled = true; bA.classList.remove("activo"); }
+
+    // Causa (only for active detenciones)
+    if (estado === "detenida") {
+      mostrarCausa("Causa de detención actual");
+      hint("Seleccione la causa en cualquier momento durante la detención", false);
+    } else {
+      ocultarCausa();
+    }
+    if (detencionActual?.causa && estado === "detenida") document.getElementById("causa").value = detencionActual.causa;
+
+    // Historial
+    renderHistorial(hoy, ld);
+  }
+
+  function setHitoBtn(id, hab, done) {
+    const b = document.getElementById(id);
+    b.disabled = !hab;
+    b.classList.toggle("done", done);
+  }
+
+  function renderHistorial(hoy, ld) {
+    const lista = document.getElementById("historyList");
+    const todos = hoy.slice(-5).reverse();
+
+    if (todos.length === 0 && !ld) { lista.innerHTML = '<div class="empty-state">Sin registros hoy</div>'; return; }
+
+    let items = todos.map(r => {
+      const tipo = r.tipo || "detencion";
+      const esDetencion = tipo === "detencion";
+      const esAlmuerzo = tipo === "almuerzo";
+      const ts = r.inicio || r.timestamp || "";
+      const hora = ts ? fH(ts) : "";
+      const tipoLabel = HITO_LABELS[tipo] || tipo;
+
+      // Hitos: solo hora inicio. Detenciones y almuerzo con inicio → fin
+      let horaStr = hora;
+      if ((esDetencion || esAlmuerzo) && r.fin) horaStr = hora + " → " + fH(r.fin);
+
+      // Causa/estado
+      let descHtml, itemClass;
+      if (esDetencion) {
+        if (r.fin) {
+          descHtml = `<span class="h-tipo">${tipoLabel}</span><span class="h-causa">· ${r.causa || ""}</span>`;
+          itemClass = "history-item det";
+        } else {
+          // No debería pasar en historial cerrado
+          descHtml = `<span class="h-tipo">${tipoLabel}</span>`;
+          itemClass = "history-item det";
+        }
+      } else {
+        // Hito
+        const tieneCausa = r.causa && r.causa !== "" && r.causa !== "Almuerzo";
+        if (tieneCausa) {
+          descHtml = `<span class="h-tipo">${tipoLabel}</span><span class="h-causa">· ${r.causa}</span>`;
+          itemClass = "history-item";
+        } else {
+          descHtml = `<span class="h-tipo">${tipoLabel}</span><span class="h-ok">· a tiempo</span>`;
+          itemClass = "history-item ok";
+        }
+      }
+
+      const dur = (esDetencion || esAlmuerzo) && r.duracion_min && r.duracion_min !== "" ? `${r.duracion_min} min` : "";
+
+      return `<div class="${itemClass}">
+        <div class="history-info">
+          <span class="history-time">${horaStr}</span>
+          <span class="history-desc">${descHtml}</span>
+        </div>
+        <span class="history-dur">${dur}</span>
+      </div>`;
+    });
+
+    if (ld) {
+      items.unshift(`<div class="history-item det">
+        <div class="history-info">
+          <span class="history-time">${fH(detencionActual.inicio)} → en curso</span>
+          <span class="history-desc"><span class="h-tipo">Detención en curso</span>${detencionActual.causa ? '<span class="h-causa">· ' + detencionActual.causa + '</span>' : ''}</span>
+        </div>
+        <span class="history-dur" style="color:var(--red)">activa</span>
+      </div>`);
+    }
+
+    lista.innerHTML = items.join("");
+  }
+</script>
+</body>
+</html>
