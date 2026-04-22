@@ -294,12 +294,78 @@
   }
 
   // ── HITOS ──────────────────────────────────────
+  let almuerzoExtraPendiente = null; // {almId, inicioAlmuerzo, finAlmuerzo, minutosExtra}
+
   function registrarHito(tipo) {
     const ahora = new Date();
+
+    // Almuerzo no requiere causa nunca — se registra libre
+    if (tipo === "almuerzo_inicio") {
+      const id = crypto.randomUUID(), inicio = ahora.toISOString();
+      detencionActual = { id, inicio, causa: "" };
+      registros.push({ id, inicio, fin: "", duracion_min: "", causa: "", tipo: "almuerzo" });
+      estado = "almuerzo"; actualizarUI();
+      enviar({ accion: "inicio", id, inicio, causa: "", tipo: "almuerzo" });
+      setStatus("✓ Almuerzo registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
+      return;
+    }
+
+    // Arranque post almuerzo — lógica de 1hr
+    if (tipo === "inicio_pm" && detencionActual && estado === "almuerzo") {
+      const finReal = ahora.toISOString();
+      const durReal = Math.round((new Date(finReal) - new Date(detencionActual.inicio)) / 60000);
+      const almId = detencionActual.id;
+      const inicioAlmuerzo = detencionActual.inicio;
+
+      if (durReal > 60) {
+        // Almuerzo excedido: cerrar almuerzo a 60 min
+        const fin60 = new Date(new Date(inicioAlmuerzo).getTime() + 60 * 60000).toISOString();
+        actualizarRegistroLocal(almId, fin60, 60);
+        enviar({ accion: "fin", id: almId, fin: fin60, duracion_min: 60 });
+        detencionActual = null;
+
+        // Pedir causa para los minutos extra si no la tiene aún
+        if (!almuerzoExtraPendiente) {
+          almuerzoExtraPendiente = { inicioExtra: fin60, finExtra: finReal, minutosExtra: durReal - 60 };
+          abrirModal("Atraso post almuerzo");
+          hitoPendienteTipo = "inicio_pm";
+          return;
+        }
+
+        // Ya tiene causa (viene del modal)
+        const causa = document.getElementById("modalCausa").value;
+        const extra = almuerzoExtraPendiente;
+        almuerzoExtraPendiente = null;
+        hitoPendienteTipo = null;
+        cerrarModal();
+
+        // Registrar detención por atraso
+        const detId = crypto.randomUUID();
+        registros.push({ id: detId, inicio: extra.inicioExtra, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa, tipo: "detencion" });
+        enviar({ accion: "inicio", id: detId, inicio: extra.inicioExtra, causa, tipo: "detencion" });
+        enviar({ accion: "fin", id: detId, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa });
+
+      } else {
+        // Almuerzo normal: cerrar con duración real
+        actualizarRegistroLocal(almId, finReal, durReal);
+        enviar({ accion: "fin", id: almId, fin: finReal, duracion_min: durReal });
+        detencionActual = null;
+      }
+
+      // Registrar hito inicio_pm
+      const id = crypto.randomUUID();
+      registros.push({ id, inicio: ahora.toISOString(), fin: "", duracion_min: "", causa: "", tipo: "inicio_pm" });
+      estado = "operando"; actualizarUI();
+      enviar({ accion: "hito", id, timestamp: ahora.toISOString(), tipo: "inicio_pm", causa: "" });
+      setStatus("✓ Registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
+      return;
+    }
+
+    // Otros hitos (inicio_am, fin_turno) — lógica original con margen
     const necesita = requiereCausa(tipo, ahora);
     if (necesita && !hitoPendienteTipo) {
       hitoPendienteTipo = tipo;
-      const titles = { inicio_am: "Inicio tardío", inicio_pm: "Reanudación tardía", almuerzo_inicio: "Almuerzo anticipado", fin_turno: "Fin anticipado" };
+      const titles = { inicio_am: "Inicio tardío", fin_turno: "Fin anticipado" };
       abrirModal(titles[tipo] || "Desvío detectado");
       return;
     }
@@ -307,24 +373,9 @@
     hitoPendienteTipo = null;
     cerrarModal();
 
-    if (tipo === "almuerzo_inicio") {
-      const id = crypto.randomUUID(), inicio = ahora.toISOString();
-      detencionActual = { id, inicio, causa: "Almuerzo" };
-      registros.push({ id, inicio, fin: "", duracion_min: "", causa: causa || "", tipo: "almuerzo" });
-      estado = "almuerzo"; actualizarUI();
-      enviar({ accion: "inicio", id, inicio, causa: causa || "", tipo: "almuerzo" });
-      setStatus("✓ Almuerzo registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
-      return;
-    }
-    if (tipo === "inicio_pm" && detencionActual && estado === "almuerzo") {
-      const fin = ahora.toISOString(), dur = Math.round((new Date(fin) - new Date(detencionActual.inicio)) / 60000);
-      actualizarRegistroLocal(detencionActual.id, fin, dur);
-      enviar({ accion: "fin", id: detencionActual.id, fin, duracion_min: dur });
-      detencionActual = null;
-    }
     const id = crypto.randomUUID();
     registros.push({ id, inicio: ahora.toISOString(), fin: "", duracion_min: "", causa, tipo });
-    if (tipo === "inicio_am" || tipo === "inicio_pm") estado = "operando";
+    if (tipo === "inicio_am") estado = "operando";
     if (tipo === "fin_turno") estado = "turno_fin";
     actualizarUI();
     enviar({ accion: "hito", id, timestamp: ahora.toISOString(), tipo, causa });
@@ -334,8 +385,8 @@
   function requiereCausa(tipo, ahora) {
     const h = HORARIOS[tipo], ref = new Date(ahora); ref.setHours(h.h, h.m, 0, 0);
     const m = MARGEN * 60000;
-    if (tipo === "inicio_am" || tipo === "inicio_pm") return ahora > new Date(ref.getTime() + m);
-    if (tipo === "almuerzo_inicio" || tipo === "fin_turno") return ahora < new Date(ref.getTime() - m);
+    if (tipo === "inicio_am") return ahora > new Date(ref.getTime() + m);
+    if (tipo === "fin_turno") return ahora < new Date(ref.getTime() - m);
     return false;
   }
 
@@ -370,7 +421,14 @@
   }
   function onModalCausaChange() {
     const causa = document.getElementById("modalCausa").value;
-    if (causa && hitoPendienteTipo) { registrarHito(hitoPendienteTipo); }
+    if (causa && hitoPendienteTipo) {
+      if (hitoPendienteTipo === "inicio_pm" && almuerzoExtraPendiente) {
+        // Re-enter registrarHito with causa ready
+        registrarHito("inicio_pm");
+      } else {
+        registrarHito(hitoPendienteTipo);
+      }
+    }
   }
   function abrirModal(title) {
     document.getElementById("modalTitle").textContent = title;
