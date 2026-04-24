@@ -98,7 +98,7 @@
 
   /* HISTORIAL */
   .history-section { flex: 1 1 auto; display: flex; flex-direction: column; gap: 5px; min-height: 0; }
-  .history-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+  .history-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 200px; }
   .history-item { display: flex; align-items: center; background: var(--gray-50); border-radius: var(--radius-sm); padding: 6px 10px; animation: slideIn 0.2s ease; flex-shrink: 0; border-left: 3px solid var(--gray-300); }
   .history-item.det { border-left-color: var(--red); }
   .history-item.ok { border-left-color: var(--green); }
@@ -246,7 +246,7 @@
   const TOKEN = "paladas2026";
   const HORARIOS = { inicio_am: {h:9,m:30}, almuerzo_inicio: {h:12,m:30}, inicio_pm: {h:13,m:30}, fin_turno: {h:18,m:0} };
   const MARGEN = 5;
-  const HITO_LABELS = { inicio_am: "Inicio turno", almuerzo: "Parada almuerzo", inicio_pm: "Arranque post almuerzo", fin_turno: "Fin turno", detencion: "Detención" };
+  const HITO_LABELS = { inicio_am: "Inicio turno", almuerzo: "Parada almuerzo", atraso_pm: "Atraso post almuerzo", fin_turno: "Fin turno", detencion: "Detención" };
   const HITO_BTN_IDS = { inicio_am: "btnInicioAM", almuerzo_inicio: "btnAlmuerzo", inicio_pm: "btnInicioPM", fin_turno: "btnFin" };
 
   let registros = [], detencionActual = null, hitoPendienteTipo = null, timerInterval = null, estado = "sin_turno";
@@ -272,7 +272,10 @@
     if (hoy.length === 0) { estado = "sin_turno"; return; }
     const tieneInicioAM = hoy.some(r => r.tipo === "inicio_am");
     const tieneAlmuerzo = hoy.find(r => r.tipo === "almuerzo");
-    const tieneInicioPM = hoy.some(r => r.tipo === "inicio_pm");
+    const almuerzoCerrado = tieneAlmuerzo && tieneAlmuerzo.fin;
+    const tieneAtrasoPM = hoy.find(r => r.tipo === "atraso_pm");
+    const atrasoPMCerrado = !tieneAtrasoPM || tieneAtrasoPM.fin;
+    const postAlmuerzoListo = almuerzoCerrado && atrasoPMCerrado;
     const tieneFin = hoy.some(r => r.tipo === "fin_turno");
     if (tieneFin) { estado = "turno_fin"; return; }
     const dets = hoy.filter(r => r.tipo === "detencion");
@@ -287,19 +290,19 @@
       detencionActual = { id: tieneAlmuerzo.id, inicio: tieneAlmuerzo.inicio, causa: "Almuerzo" };
       estado = "almuerzo"; return;
     }
-    if (tieneInicioPM) { estado = "operando"; return; }
+    if (postAlmuerzoListo) { estado = "operando"; return; }
     if (tieneAlmuerzo && tieneAlmuerzo.fin) { estado = "operando"; return; }
     if (tieneInicioAM) { estado = "operando"; return; }
     estado = "sin_turno";
   }
 
   // ── HITOS ──────────────────────────────────────
-  let almuerzoExtraPendiente = null; // {almId, inicioAlmuerzo, finAlmuerzo, minutosExtra}
+  let almuerzoExtraPendiente = null;
 
   function registrarHito(tipo) {
     const ahora = new Date();
 
-    // Almuerzo no requiere causa nunca — se registra libre
+    // Almuerzo no requiere causa — se registra libre
     if (tipo === "almuerzo_inicio") {
       const id = crypto.randomUUID(), inicio = ahora.toISOString();
       detencionActual = { id, inicio, causa: "" };
@@ -310,58 +313,60 @@
       return;
     }
 
-    // Arranque post almuerzo — lógica de 1hr
-    if (tipo === "inicio_pm" && detencionActual && estado === "almuerzo") {
-      const finReal = ahora.toISOString();
-      const durReal = Math.round((new Date(finReal) - new Date(detencionActual.inicio)) / 60000);
-      const almId = detencionActual.id;
-      const inicioAlmuerzo = detencionActual.inicio;
-
-      if (durReal > 60) {
-        // Almuerzo excedido: cerrar almuerzo a 60 min
-        const fin60 = new Date(new Date(inicioAlmuerzo).getTime() + 60 * 60000).toISOString();
-        actualizarRegistroLocal(almId, fin60, 60);
-        enviar({ accion: "fin", id: almId, fin: fin60, duracion_min: 60 });
-        detencionActual = null;
-
-        // Pedir causa para los minutos extra si no la tiene aún
-        if (!almuerzoExtraPendiente) {
-          almuerzoExtraPendiente = { inicioExtra: fin60, finExtra: finReal, minutosExtra: durReal - 60 };
-          abrirModal("Atraso post almuerzo");
-          hitoPendienteTipo = "inicio_pm";
-          return;
-        }
-
-        // Ya tiene causa (viene del modal)
+    // Arranque post almuerzo
+    if (tipo === "inicio_pm") {
+      // Si viene del modal con causa para atraso
+      if (almuerzoExtraPendiente) {
         const causa = document.getElementById("modalCausa").value;
         const extra = almuerzoExtraPendiente;
         almuerzoExtraPendiente = null;
         hitoPendienteTipo = null;
         cerrarModal();
 
-        // Registrar detención por atraso
+        // Registrar atraso_pm
         const detId = crypto.randomUUID();
-        registros.push({ id: detId, inicio: extra.inicioExtra, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa, tipo: "detencion" });
-        enviar({ accion: "inicio", id: detId, inicio: extra.inicioExtra, causa, tipo: "detencion" });
+        registros.push({ id: detId, inicio: extra.inicioExtra, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa, tipo: "atraso_pm" });
+        enviar({ accion: "inicio", id: detId, inicio: extra.inicioExtra, causa, tipo: "atraso_pm" });
         enviar({ accion: "fin", id: detId, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa });
 
-      } else {
-        // Almuerzo normal: cerrar con duración real
-        actualizarRegistroLocal(almId, finReal, durReal);
-        enviar({ accion: "fin", id: almId, fin: finReal, duracion_min: durReal });
-        detencionActual = null;
+        estado = "operando"; actualizarUI();
+        setStatus("✓ Registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
+        return;
       }
 
-      // Registrar hito inicio_pm
-      const id = crypto.randomUUID();
-      registros.push({ id, inicio: ahora.toISOString(), fin: "", duracion_min: "", causa: "", tipo: "inicio_pm" });
-      estado = "operando"; actualizarUI();
-      enviar({ accion: "hito", id, timestamp: ahora.toISOString(), tipo: "inicio_pm", causa: "" });
-      setStatus("✓ Registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
+      // Procesar almuerzo
+      if (detencionActual && estado === "almuerzo") {
+        const finReal = ahora.toISOString();
+        const durReal = Math.round((new Date(finReal) - new Date(detencionActual.inicio)) / 60000);
+        const almId = detencionActual.id;
+        const inicioAlmuerzo = detencionActual.inicio;
+
+        if (durReal > 60) {
+          // Cerrar almuerzo a 60 min
+          const fin60 = new Date(new Date(inicioAlmuerzo).getTime() + 60 * 60000).toISOString();
+          actualizarRegistroLocal(almId, fin60, 60);
+          enviar({ accion: "fin", id: almId, fin: fin60, duracion_min: 60 });
+          detencionActual = null;
+
+          // Pedir causa para los minutos extra
+          almuerzoExtraPendiente = { inicioExtra: fin60, finExtra: finReal, minutosExtra: durReal - 60 };
+          hitoPendienteTipo = "inicio_pm";
+          abrirModal("Atraso post almuerzo");
+          return;
+        } else {
+          // Almuerzo normal
+          actualizarRegistroLocal(almId, finReal, durReal);
+          enviar({ accion: "fin", id: almId, fin: finReal, duracion_min: durReal });
+          detencionActual = null;
+          estado = "operando"; actualizarUI();
+          setStatus("✓ Registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
+          return;
+        }
+      }
       return;
     }
 
-    // Otros hitos (inicio_am, fin_turno) — lógica original con margen
+    // Otros hitos (inicio_am, fin_turno)
     const necesita = requiereCausa(tipo, ahora);
     if (necesita && !hitoPendienteTipo) {
       hitoPendienteTipo = tipo;
@@ -476,8 +481,18 @@
     const fin = hoy.find(r => r.tipo === "fin_turno");
     const tsF = fin ? new Date(fin.inicio || fin.timestamp) : new Date();
     let detMin = 0;
-    hoy.filter(r => (r.tipo === "detencion" || r.tipo === "almuerzo") && r.fin).forEach(r => { detMin += Number(r.duracion_min) || 0; });
-    if (detencionActual && estado === "detenida") detMin += (Date.now() - new Date(detencionActual.inicio).getTime()) / 60000;
+    hoy.filter(r => (r.tipo === "detencion" || r.tipo === "almuerzo" || r.tipo === "atraso_pm") && r.fin).forEach(r => {
+      const d = parseFloat(r.duracion_min);
+      if (!isNaN(d)) detMin += d;
+    });
+    // Almuerzo activo (sin cerrar aún)
+    if (detencionActual && estado === "almuerzo") {
+      detMin += (Date.now() - new Date(detencionActual.inicio).getTime()) / 60000;
+    }
+    // Detención activa
+    if (detencionActual && estado === "detenida") {
+      detMin += (Date.now() - new Date(detencionActual.inicio).getTime()) / 60000;
+    }
     const t = Math.max(0, (tsF - tsI) / 60000 - detMin);
     return `${String(Math.floor(t/60)).padStart(2,"0")}:${String(Math.floor(t%60)).padStart(2,"0")}`;
   }
@@ -499,12 +514,18 @@
     document.getElementById("horasTrabajadas").textContent = calcularHorasTrabajadas(hoy);
 
     // Hitos
-    const tIA = hoy.some(r => r.tipo === "inicio_am"), tAl = hoy.some(r => r.tipo === "almuerzo"), tIP = hoy.some(r => r.tipo === "inicio_pm"), tF = hoy.some(r => r.tipo === "fin_turno");
+    const tIA = hoy.some(r => r.tipo === "inicio_am");
+    const almuerzoReg = hoy.find(r => r.tipo === "almuerzo");
+    const tAl = !!almuerzoReg;
+    const almCerrado = almuerzoReg && almuerzoReg.fin;
+    const atrasoPM = hoy.find(r => r.tipo === "atraso_pm");
+    const postAlmListo = almCerrado && (!atrasoPM || atrasoPM.fin);
+    const tF = hoy.some(r => r.tipo === "fin_turno");
 
     setHitoBtn("btnInicioAM", !tIA && estado === "sin_turno", tIA);
     setHitoBtn("btnAlmuerzo", tIA && !tAl && estado === "operando", tAl);
-    setHitoBtn("btnInicioPM", tAl && !tIP && estado === "almuerzo", tIP);
-    setHitoBtn("btnFin", tIP && !tF && estado === "operando", tF);
+    setHitoBtn("btnInicioPM", tAl && !almCerrado && estado === "almuerzo", postAlmListo);
+    setHitoBtn("btnFin", postAlmListo && !tF && estado === "operando", tF);
 
     // Botones detención
     const bP = document.getElementById("btnParar"), bA = document.getElementById("btnAndar");
@@ -533,36 +554,33 @@
 
   function renderHistorial(hoy, ld) {
     const lista = document.getElementById("historyList");
-    const todos = hoy.slice(-5).reverse();
+    const todos = hoy.slice().reverse();
 
     if (todos.length === 0 && !ld) { lista.innerHTML = '<div class="empty-state">Sin registros hoy</div>'; return; }
 
     let items = todos.map(r => {
       const tipo = r.tipo || "detencion";
-      const esDetencion = tipo === "detencion";
+      const esDetencion = tipo === "detencion" || tipo === "atraso_pm";
       const esAlmuerzo = tipo === "almuerzo";
       const ts = r.inicio || r.timestamp || "";
       const hora = ts ? fH(ts) : "";
       const tipoLabel = HITO_LABELS[tipo] || tipo;
 
-      // Hitos: solo hora inicio. Detenciones y almuerzo con inicio → fin
+      // Detenciones, atraso_pm y almuerzo con inicio → fin. Otros hitos solo hora
       let horaStr = hora;
       if ((esDetencion || esAlmuerzo) && r.fin) horaStr = hora + " → " + fH(r.fin);
 
       // Causa/estado
       let descHtml, itemClass;
       if (esDetencion) {
-        if (r.fin) {
-          descHtml = `<span class="h-tipo">${tipoLabel}</span><span class="h-causa">· ${r.causa || ""}</span>`;
-          itemClass = "history-item det";
-        } else {
-          // No debería pasar en historial cerrado
-          descHtml = `<span class="h-tipo">${tipoLabel}</span>`;
-          itemClass = "history-item det";
-        }
+        descHtml = `<span class="h-tipo">${tipoLabel}</span><span class="h-causa">· ${r.causa || ""}</span>`;
+        itemClass = "history-item det";
+      } else if (esAlmuerzo) {
+        descHtml = `<span class="h-tipo">${tipoLabel}</span><span class="h-ok">· a tiempo</span>`;
+        itemClass = "history-item ok";
       } else {
-        // Hito
-        const tieneCausa = r.causa && r.causa !== "" && r.causa !== "Almuerzo";
+        // Hito (inicio_am, fin_turno)
+        const tieneCausa = r.causa && r.causa !== "";
         if (tieneCausa) {
           descHtml = `<span class="h-tipo">${tipoLabel}</span><span class="h-causa">· ${r.causa}</span>`;
           itemClass = "history-item";
