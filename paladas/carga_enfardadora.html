@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Carga Enfardadora — Ambipar</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00873D;
+    --green-dark: #006830;
+    --green-light: #e8f5ee;
+    --green-mid: #b8dfc8;
+    --white: #ffffff;
+    --gray-50: #f4f5f4;
+    --gray-100: #eaecea;
+    --gray-300: #c8cdc8;
+    --gray-500: #7a877a;
+    --gray-800: #1e271e;
+    --red: #9b2c2c;
+    --red-bright: #c0392b;
+    --red-light: #fdf0ee;
+    --amber: #d4930a;
+    --amber-light: #fdf3dc;
+    --shadow: 0 4px 24px rgba(0,87,40,0.13);
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; height: 100dvh; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--gray-50);
+    display: flex; flex-direction: column; align-items: center; overflow: hidden;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    width: 100%; background: #BDFE00; padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .topbar-logo { height: 28px; width: auto; display: block; }
+  .topbar-sep { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
+  .topbar-title {
+    font-size: 11px; font-weight: 700; color: #1e271e;
+    letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3; flex: 1;
+  }
+  .topbar-date {
+    font-family: 'Roboto Mono', monospace; font-size: 11px;
+    font-weight: 500; color: rgba(30,39,30,0.6);
+  }
+
+  /* CARD */
+  .card {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow); width: calc(100% - 32px); max-width: 420px;
+    margin: 12px 0; padding: 14px 18px;
+    display: flex; flex-direction: column; flex: 1; overflow: hidden;
+  }
+
+  .label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 5px;
+  }
+
+  /* STATUS INDICATOR */
+  .status-section { margin-bottom: 10px; }
+
+  .status-indicator {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600;
+  }
+
+  .status-indicator.idle {
+    background: var(--amber-light); color: var(--amber);
+  }
+
+  .status-indicator.active {
+    background: var(--green-light); color: var(--green);
+  }
+
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  .status-dot.idle { background: var(--amber); }
+  .status-dot.active {
+    background: var(--green);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  /* TIMER */
+  .timer-section {
+    text-align: center; padding: 10px 0; margin-bottom: 10px;
+    border-top: 1px solid var(--gray-100); border-bottom: 1px solid var(--gray-100);
+  }
+
+  .timer-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px;
+  }
+
+  .timer-display {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 56px; font-weight: 500; color: var(--green); line-height: 1.1;
+  }
+
+  /* MATERIAL SELECT */
+  .material-section { margin-bottom: 10px; }
+
+  .select-wrapper { position: relative; }
+
+  select {
+    width: 100%; appearance: none; background: var(--gray-50);
+    border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm);
+    padding: 10px 40px 10px 14px; font-family: 'Montserrat', sans-serif;
+    font-size: 15px; font-weight: 600; color: var(--gray-800);
+    cursor: pointer; outline: none; transition: border-color 0.2s;
+  }
+
+  select:focus { border-color: var(--green); }
+
+  .select-arrow {
+    position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--green);
+  }
+
+  /* MAIN BUTTONS */
+  .btn-section { margin-bottom: 10px; }
+
+  .btn-main {
+    width: 100%; border: none; border-radius: var(--radius);
+    padding: 22px 16px; cursor: pointer; user-select: none; outline: none;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 4px;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+
+  .btn-main:active { transform: scale(0.97); }
+  .btn-main:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-iniciar { background: var(--green); }
+  .btn-terminar { background: var(--red); }
+
+  .btn-main-sub {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.7);
+  }
+
+  .btn-main-text {
+    font-size: 24px; font-weight: 800; color: var(--white);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+
+  .btn-cancel {
+    display: block; width: 100%; text-align: center; margin-top: 24px;
+    padding: 8px; background: none; border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm); cursor: pointer;
+    font-family: 'Montserrat', sans-serif; font-size: 11px;
+    font-weight: 600; color: var(--gray-500);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .btn-cancel:active { background: var(--red-light); color: var(--red-bright); }
+
+  .btn-delete {
+    background: none; border: none; cursor: pointer; color: var(--gray-300);
+    padding: 5px; border-radius: 6px; display: flex; align-items: center;
+    transition: color 0.15s, background 0.15s; flex-shrink: 0; margin-left: 6px;
+  }
+
+  .btn-delete:active { color: var(--red-bright); background: var(--red-light); }
+
+  /* SUMMARY STATS */
+  .summary-section {
+    display: flex; gap: 6px; margin-bottom: 10px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--gray-100);
+  }
+
+  .summary-box {
+    flex: 1; text-align: center; background: var(--gray-50);
+    border-radius: var(--radius-sm); padding: 8px 4px;
+  }
+
+  .summary-label {
+    font-size: 8px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px;
+  }
+
+  .summary-value {
+    font-family: 'Roboto Mono', monospace; font-size: 18px;
+    font-weight: 500; color: var(--green); line-height: 1.2;
+  }
+
+  .summary-value.warn { color: var(--amber); }
+
+  .summary-unit {
+    font-size: 9px; font-weight: 600; color: var(--gray-500); margin-top: 1px;
+  }
+
+  /* HISTORY */
+  .history-section {
+    flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  }
+
+  .history-list {
+    display: flex; flex-direction: column; gap: 5px;
+    overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch;
+  }
+
+  .history-item {
+    display: flex; align-items: center; background: var(--gray-50);
+    border-radius: var(--radius-sm); border-left: 3px solid var(--green);
+    padding: 7px 10px; animation: slideIn 0.2s ease; flex-shrink: 0;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .history-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+
+  .history-material {
+    font-size: 12px; font-weight: 700; color: var(--gray-800);
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+
+  .history-times {
+    font-family: 'Roboto Mono', monospace; font-size: 11px;
+    color: var(--gray-500); font-weight: 400;
+  }
+
+  .history-duration {
+    font-family: 'Roboto Mono', monospace; font-size: 14px;
+    font-weight: 500; color: var(--green); flex-shrink: 0; margin-left: 8px;
+  }
+
+  .empty-state {
+    text-align: center; color: var(--gray-500); font-size: 11px;
+    font-weight: 600; padding: 16px 0; letter-spacing: 0.03em;
+  }
+
+  /* BOTTOM STATUS */
+  .status-wrap { flex: 0 0 auto; margin-top: 4px; }
+
+  .status-bar {
+    text-align: center; font-size: 11px; font-weight: 600;
+    color: var(--gray-500); min-height: 14px; letter-spacing: 0.03em;
+  }
+  .status-bar.error { color: var(--red-bright); }
+  .status-bar.ok    { color: var(--green); }
+
+  /* SKELETON */
+  .skeleton {
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+    background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px;
+  }
+  .skeleton-status { height: 42px; border-radius: var(--radius-sm); margin-bottom: 10px; }
+  .skeleton-btn { height: 80px; border-radius: var(--radius); margin-bottom: 10px; }
+  .skeleton-item { height: 44px; border-radius: var(--radius-sm); margin-bottom: 5px; }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 100; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal-box {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25); padding: 24px 20px;
+    width: 100%; max-width: 340px; text-align: center;
+  }
+
+  .modal-title { font-size: 14px; font-weight: 700; color: var(--gray-800); margin-bottom: 6px; }
+  .modal-detail { font-size: 12px; color: var(--gray-500); margin-bottom: 4px; line-height: 1.5; }
+  .modal-detail strong { color: var(--gray-800); font-weight: 700; }
+  .modal-buttons { display: flex; gap: 10px; margin-top: 16px; }
+
+  .modal-btn {
+    flex: 1; padding: 10px; border-radius: var(--radius-sm);
+    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; border: none; outline: none; transition: opacity 0.15s;
+  }
+  .modal-btn:active { opacity: 0.7; }
+  .modal-btn-cancel { background: var(--gray-100); color: var(--gray-500); }
+  .modal-btn-confirm { background: var(--red-bright); color: var(--white); }
+
+  /* HIDE HELPERS */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <img class="topbar-logo" src="https://raw.githubusercontent.com/josuecbritos/ambipar/main/paladas/ambipar-logo.png" alt="Ambipar">
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Carga Enfardadora<br>Clasificación Giri</div>
+  <div class="topbar-date" id="topbarDate"></div>
+</div>
+
+<div class="card">
+
+  <!-- ESTADO ACTUAL -->
+  <div class="status-section">
+    <div class="label">Estado Actual</div>
+    <div id="statusIndicator" class="skeleton skeleton-status"></div>
+  </div>
+
+  <!-- TIMER (solo cargando) -->
+  <div class="timer-section hidden" id="timerSection">
+    <div class="timer-label">Tiempo Cargando</div>
+    <div class="timer-display" id="timerDisplay">00:00</div>
+  </div>
+
+  <!-- MATERIAL SELECT (solo sin carga) -->
+  <div class="material-section" id="materialSection">
+    <div class="label">Material a cargar</div>
+    <div class="select-wrapper">
+      <select id="material">
+        <option value="">— Seleccione material —</option>
+      </select>
+      <div class="select-arrow">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN BUTTON -->
+  <div class="btn-section" id="btnSection">
+    <div id="skeletonBtn" class="skeleton skeleton-btn"></div>
+
+    <button class="btn-main btn-iniciar hidden" id="btnIniciar" onclick="iniciarCarga()">
+      <span class="btn-main-sub">Presionar para</span>
+      <span class="btn-main-text">Iniciar Carga</span>
+    </button>
+
+    <button class="btn-main btn-terminar hidden" id="btnTerminar" onclick="terminarCarga()">
+      <span class="btn-main-sub">Presionar para</span>
+      <span class="btn-main-text">Terminar Carga</span>
+    </button>
+
+    <button class="btn-cancel hidden" id="btnCancelar" onclick="pedirCancelar()">
+      Cancelar carga
+    </button>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-section">
+    <div class="summary-box">
+      <div class="summary-label">Cargas hoy</div>
+      <div class="summary-value" id="sumCargas">—</div>
+    </div>
+    <div class="summary-box">
+      <div class="summary-label">Cargando</div>
+      <div class="summary-value" id="sumCargando">—</div>
+      <div class="summary-unit">hh:mm</div>
+    </div>
+    <div class="summary-box">
+      <div class="summary-label">Tiempo muerto</div>
+      <div class="summary-value warn" id="sumMuerto">—</div>
+      <div class="summary-unit">hh:mm</div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-section">
+    <div class="label">Registros del día</div>
+    <div class="history-list" id="historyList">
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-wrap">
+    <div class="status-bar" id="statusBar"></div>
+  </div>
+
+</div>
+
+<!-- CANCEL MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">Cancelar carga</div>
+    <div class="modal-detail" id="modalDetail"></div>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-cancel" onclick="cerrarModal()">Volver</button>
+      <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn" onclick="confirmarModal()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ══════════════════════════════════════════════════
+  const API_URL = "https://script.google.com/macros/s/AKfycbyqah33vTZl2FlV1hmqjz7mWTY2LEdKSY0US2NPRZHHCgbCFPq1Lilri-QM1BHf4JdK/exec";
+  const TOKEN   = "paladas2026";
+  // ══════════════════════════════════════════════════
+
+  let registros = [];
+  let materiales = [];
+  let horarioInicio = "09:30";
+  let horarioFin = "18:00";
+  let almuerzoInicio = "12:30";
+  let almuerzoFin = "13:30";
+  let cargaActiva = null;   // registro con fin vacío
+  let timerInterval = null;
+  let datosReales = false;  // true cuando la API respondió
+
+  // ── INIT ──────────────────────────────────────────
+  window.addEventListener("DOMContentLoaded", () => {
+    mostrarFechaHoy();
+    renderInmediato();  // UI visible al instante
+    cargarDatos();      // datos reales en segundo plano
+  });
+
+  // Mostrar estado idle de inmediato (sin esperar API)
+  function renderInmediato() {
+    // Intentar restaurar estado desde cache
+    try {
+      const cache = JSON.parse(localStorage.getItem("carga_cache") || "null");
+      if (cache && cache.fecha === new Date().toDateString()) {
+        registros = cache.registros || [];
+        materiales = cache.materiales || [];
+        horarioInicio = cache.horarioInicio || horarioInicio;
+        horarioFin = cache.horarioFin || horarioFin;
+        almuerzoInicio = cache.almuerzoInicio || almuerzoInicio;
+        almuerzoFin = cache.almuerzoFin || almuerzoFin;
+        poblarMateriales();
+        detectarEstado();
+        datosReales = true;
+        renderEstado();
+        actualizarUI();
+        return;
+      }
+    } catch (e) {}
+
+    // Sin cache: mostrar estado idle con botón listo, historia en loading
+    cargaActiva = null;
+    renderEstado();
+    // No llamar actualizarUI — dejar skeletons en historial y resumen
+  }
+
+  function guardarCache() {
+    try {
+      localStorage.setItem("carga_cache", JSON.stringify({
+        fecha: new Date().toDateString(),
+        registros, materiales, horarioInicio, horarioFin, almuerzoInicio, almuerzoFin
+      }));
+    } catch (e) {}
+  }
+
+  function mostrarFechaHoy() {
+    const h = new Date();
+    document.getElementById("topbarDate").textContent =
+      `${String(h.getDate()).padStart(2,"0")}/${String(h.getMonth()+1).padStart(2,"0")}/${h.getFullYear()}`;
+  }
+
+  // ── API ───────────────────────────────────────────
+  async function cargarDatos() {
+    try {
+      const hoy = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const res = await fetch(`${API_URL}?token=${TOKEN}&fecha=${hoy}`, { redirect: "follow" });
+      const data = await res.json();
+      registros = data.registros || [];
+      materiales = data.materiales || [];
+      horarioInicio = data.horario_inicio || "09:30";
+      horarioFin = data.horario_fin || "18:00";
+      almuerzoInicio = data.almuerzo_inicio || "12:30";
+      almuerzoFin = data.almuerzo_fin || "13:30";
+      poblarMateriales();
+      detectarEstado();
+      datosReales = true;
+      renderEstado();
+      actualizarUI();
+      guardarCache();
+    } catch (err) {
+      // Si ya renderizamos desde cache, no mostrar error
+      if (registros.length === 0 && materiales.length === 0) {
+        setStatus("Error al cargar datos", "error");
+      }
+    }
+  }
+
+  function poblarMateriales() {
+    const sel = document.getElementById("material");
+    const guardado = sessionStorage.getItem("material_carga") || "";
+    sel.innerHTML = '<option value="">— Seleccione material —</option>';
+    materiales.forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m; opt.textContent = m;
+      sel.appendChild(opt);
+    });
+    if (guardado && materiales.includes(guardado)) sel.value = guardado;
+  }
+
+  function detectarEstado() {
+    const hoy = registros.filter(r => esHoy(r.inicio));
+    cargaActiva = hoy.find(r => !r.fin) || null;
+  }
+
+  // ── INICIAR CARGA ─────────────────────────────────
+  async function iniciarCarga() {
+    const material = document.getElementById("material").value;
+    if (!material) { setStatus("Seleccione un material", "error"); return; }
+
+    sessionStorage.setItem("material_carga", material);
+
+    const registro = {
+      id: crypto.randomUUID(),
+      inicio: new Date().toISOString(),
+      fin: "",
+      duracion_min: "",
+      material: material
+    };
+
+    // Optimista
+    registros.push(registro);
+    cargaActiva = registro;
+    renderEstado();
+    actualizarUI();
+    guardarCache();
+
+    try {
+      await fetch(`${API_URL}?token=${TOKEN}`, {
+        method: "POST", redirect: "follow",
+        body: JSON.stringify({ accion: "inicio", ...registro })
+      });
+      setStatus("✓ Carga iniciada", "ok");
+      setTimeout(() => setStatus("", ""), 2000);
+    } catch (err) {
+      registros = registros.filter(r => r.id !== registro.id);
+      cargaActiva = null;
+      renderEstado();
+      actualizarUI();
+      setStatus("Error al iniciar carga", "error");
+    }
+  }
+
+  // ── TERMINAR CARGA ────────────────────────────────
+  async function terminarCarga() {
+    if (!cargaActiva) return;
+
+    const ahora = new Date();
+    const inicio = new Date(cargaActiva.inicio);
+    const durMin = Math.round((ahora - inicio) / 60000);
+
+    // Optimista
+    cargaActiva.fin = ahora.toISOString();
+    cargaActiva.duracion_min = durMin;
+    const id = cargaActiva.id;
+    cargaActiva = null;
+    renderEstado();
+    actualizarUI();
+    guardarCache();
+
+    try {
+      await fetch(`${API_URL}?token=${TOKEN}`, {
+        method: "POST", redirect: "follow",
+        body: JSON.stringify({ accion: "fin", id, fin: ahora.toISOString(), duracion_min: durMin })
+      });
+      setStatus("✓ Carga registrada", "ok");
+      setTimeout(() => setStatus("", ""), 2000);
+    } catch (err) {
+      setStatus("Error al terminar carga", "error");
+      cargarDatos();
+    }
+  }
+
+  // ── CANCELAR CARGA ────────────────────────────────
+  let modalMode = null; // "cancelar" | "eliminar"
+  let pendingDeleteId = null;
+
+  function pedirCancelar() {
+    if (!cargaActiva) return;
+    modalMode = "cancelar";
+    document.getElementById("modalTitle").textContent = "Cancelar carga";
+    document.getElementById("modalDetail").innerHTML =
+      `¿Cancelar la carga de <strong>${cargaActiva.material}</strong> en curso?<br>No quedará registrada.`;
+    document.getElementById("modalConfirmBtn").textContent = "Cancelar carga";
+    document.getElementById("modalOverlay").classList.add("active");
+  }
+
+  function pedirEliminar(id) {
+    const r = registros.find(x => x.id === id);
+    if (!r) return;
+    modalMode = "eliminar";
+    pendingDeleteId = id;
+    document.getElementById("modalTitle").textContent = "Eliminar registro";
+    document.getElementById("modalDetail").innerHTML =
+      `<strong>${r.material}</strong> · ${r.duracion_min} min<br>${formatHora(r.inicio)} → ${formatHora(r.fin)}`;
+    document.getElementById("modalConfirmBtn").textContent = "Eliminar";
+    document.getElementById("modalOverlay").classList.add("active");
+  }
+
+  function cerrarModal() {
+    modalMode = null;
+    pendingDeleteId = null;
+    document.getElementById("modalOverlay").classList.remove("active");
+  }
+
+  function confirmarModal() {
+    if (modalMode === "cancelar") confirmarCancelar();
+    else if (modalMode === "eliminar") confirmarEliminar();
+  }
+
+  async function confirmarCancelar() {
+    cerrarModal();
+    if (!cargaActiva) return;
+    const id = cargaActiva.id;
+
+    registros = registros.filter(r => r.id !== id);
+    cargaActiva = null;
+    renderEstado();
+    actualizarUI();
+    guardarCache();
+
+    try {
+      await fetch(`${API_URL}?token=${TOKEN}`, {
+        method: "POST", redirect: "follow",
+        body: JSON.stringify({ accion: "cancelar", id })
+      });
+    } catch (err) {
+      setStatus("Error al cancelar", "error");
+      cargarDatos();
+    }
+  }
+
+  async function confirmarEliminar() {
+    const id = pendingDeleteId;
+    cerrarModal();
+    if (!id) return;
+
+    registros = registros.filter(r => r.id !== id);
+    detectarEstado();
+    renderEstado();
+    actualizarUI();
+    guardarCache();
+
+    try {
+      await fetch(`${API_URL}?token=${TOKEN}`, {
+        method: "POST", redirect: "follow",
+        body: JSON.stringify({ accion: "cancelar", id })
+      });
+      setStatus("✓ Registro eliminado", "ok");
+      setTimeout(() => setStatus("", ""), 2000);
+    } catch (err) {
+      setStatus("Error al eliminar", "error");
+      cargarDatos();
+    }
+  }
+
+  // ── RENDER ESTADO ─────────────────────────────────
+  function renderEstado() {
+    const indicator = document.getElementById("statusIndicator");
+    const timerSec = document.getElementById("timerSection");
+    const matSec = document.getElementById("materialSection");
+    const btnIniciar = document.getElementById("btnIniciar");
+    const btnTerminar = document.getElementById("btnTerminar");
+    const btnCancelar = document.getElementById("btnCancelar");
+    const skBtn = document.getElementById("skeletonBtn");
+
+    skBtn.classList.add("hidden");
+    clearInterval(timerInterval);
+
+    if (cargaActiva) {
+      // CARGANDO
+      indicator.className = "";
+      indicator.innerHTML = `
+        <div class="status-indicator active">
+          <div class="status-dot active"></div>
+          Cargando ${cargaActiva.material}
+        </div>`;
+
+      timerSec.classList.remove("hidden");
+      matSec.classList.add("hidden");
+      btnIniciar.classList.add("hidden");
+      btnTerminar.classList.remove("hidden");
+      btnCancelar.classList.remove("hidden");
+
+      // Start timer
+      actualizarTimer();
+      timerInterval = setInterval(actualizarTimer, 1000);
+    } else {
+      // SIN CARGA
+      const hoy = registros.filter(r => esHoy(r.inicio) && r.fin);
+      const ultima = hoy.sort((a,b) => new Date(b.fin) - new Date(a.fin))[0];
+      let sinCargaText = "Sin carga";
+      if (ultima) {
+        const minAgo = Math.round((Date.now() - new Date(ultima.fin).getTime()) / 60000);
+        sinCargaText = `Sin carga · hace ${minAgo} min`;
+      }
+
+      indicator.className = "";
+      indicator.innerHTML = `
+        <div class="status-indicator idle">
+          <div class="status-dot idle"></div>
+          ${sinCargaText}
+        </div>`;
+
+      timerSec.classList.add("hidden");
+      matSec.classList.remove("hidden");
+      btnIniciar.classList.remove("hidden");
+      btnTerminar.classList.add("hidden");
+      btnCancelar.classList.add("hidden");
+    }
+  }
+
+  function actualizarTimer() {
+    if (!cargaActiva) return;
+    const elapsed = Date.now() - new Date(cargaActiva.inicio).getTime();
+    document.getElementById("timerDisplay").textContent = formatTimer(elapsed);
+  }
+
+  // ── UI ────────────────────────────────────────────
+  function esHoy(ts) {
+    return ts && new Date(ts).toDateString() === new Date().toDateString();
+  }
+
+  function formatHora(ts) {
+    if (!ts) return "—";
+    const d = new Date(ts);
+    return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
+
+  function formatTimer(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+    const s = String(totalSec % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
+  function formatHHMM(mins) {
+    if (isNaN(mins) || mins < 0) mins = 0;
+    const h = String(Math.floor(mins / 60)).padStart(2, "0");
+    const m = String(Math.round(mins % 60)).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
+  function parseHorario(val) {
+    const s = String(val || "").trim();
+    // "09:30" format
+    if (s.includes(":")) {
+      const [h, m] = s.split(":").map(Number);
+      if (!isNaN(h) && !isNaN(m)) {
+        const d = new Date(); d.setHours(h, m, 0, 0); return d;
+      }
+    }
+    // Sheets Date string "Sat Dec 30 1899 09:30:00 GMT..."
+    const parsed = new Date(s);
+    if (!isNaN(parsed)) {
+      const d = new Date();
+      d.setHours(parsed.getHours(), parsed.getMinutes(), 0, 0);
+      return d;
+    }
+    // Fallback
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+  }
+
+  function actualizarUI() {
+    const hoy = registros.filter(r => esHoy(r.inicio));
+    const cerradas = hoy.filter(r => r.fin);
+    const ahora = new Date();
+
+    // Cargas hoy (solo cerradas)
+    document.getElementById("sumCargas").textContent = cerradas.length;
+
+    // Tiempo cargando
+    let minsCargando = cerradas.reduce((s, r) => s + Number(r.duracion_min || 0), 0);
+    // Sumar carga activa
+    if (cargaActiva) {
+      minsCargando += (Date.now() - new Date(cargaActiva.inicio).getTime()) / 60000;
+    }
+    document.getElementById("sumCargando").textContent = formatHHMM(minsCargando);
+
+    // Tiempo muerto
+    // Tiempo muerto (descontando almuerzo)
+    const inicioTurno = parseHorario(horarioInicio);
+    const finTurno = parseHorario(horarioFin);
+    const finEfectivo = ahora < finTurno ? ahora : finTurno;
+    let minsJornada = Math.max(0, (finEfectivo - inicioTurno) / 60000);
+    if (ahora < inicioTurno) minsJornada = 0;
+
+    // Descontar parte del almuerzo que ya transcurrió
+    const almIni = parseHorario(almuerzoInicio);
+    const almFin = parseHorario(almuerzoFin);
+    if (ahora > almIni) {
+      const almEfectivoFin = ahora < almFin ? ahora : almFin;
+      const minsAlmuerzo = Math.max(0, (almEfectivoFin - almIni) / 60000);
+      minsJornada -= minsAlmuerzo;
+    }
+
+    const minsMuerto = Math.max(0, minsJornada - minsCargando);
+    document.getElementById("sumMuerto").textContent = formatHHMM(minsMuerto);
+
+    // History
+    const lista = document.getElementById("historyList");
+    const items = cerradas.sort((a,b) => new Date(b.inicio) - new Date(a.inicio));
+
+    if (items.length === 0) {
+      if (!datosReales) {
+        lista.innerHTML =
+          '<div class="skeleton skeleton-item"></div>' +
+          '<div class="skeleton skeleton-item"></div>';
+      } else {
+        lista.innerHTML = '<div class="empty-state">Sin registros hoy</div>';
+      }
+      return;
+    }
+
+    lista.innerHTML = items.map((r, i) => `
+      <div class="history-item">
+        <div class="history-info">
+          <span class="history-material">${r.material}</span>
+          <span class="history-times">${formatHora(r.inicio)} → ${formatHora(r.fin)}</span>
+        </div>
+        <span class="history-duration">${r.duracion_min} min</span>
+        ${i === 0 ? `<button class="btn-delete" onclick="pedirEliminar('${r.id}')" title="Eliminar">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>` : ''}
+      </div>`).join("");
+  }
+
+  function setStatus(msg, tipo) {
+    const bar = document.getElementById("statusBar");
+    bar.innerHTML = msg;
+    bar.className = "status-bar" + (tipo ? ` ${tipo}` : "");
+  }
+
+  // Actualizar "hace X min" cada 30s cuando idle
+  setInterval(() => {
+    if (!cargaActiva) renderEstado();
+    actualizarUI();
+  }, 30000);
+</script>
+
+</body>
+</html>
