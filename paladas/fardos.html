@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Enfardadora — Ambipar</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00873D;
+    --green-dark: #006830;
+    --green-light: #e8f5ee;
+    --green-mid: #b8dfc8;
+    --white: #ffffff;
+    --gray-50: #f4f5f4;
+    --gray-100: #eaecea;
+    --gray-300: #c8cdc8;
+    --gray-500: #7a877a;
+    --gray-800: #1e271e;
+    --red: #c0392b;
+    --red-light: #fdf0ee;
+    --orange: #e67e22;
+    --orange-light: #fef5ec;
+    --shadow: 0 4px 24px rgba(0,87,40,0.13);
+    --radius: 16px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    height: 100dvh;
+  }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--gray-50);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    width: 100%;
+    background: #BDFE00;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .topbar-logo { height: 28px; width: auto; display: block; }
+
+  .topbar-sep { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
+
+  .topbar-title {
+    font-size: 11px; font-weight: 700; color: #1e271e;
+    letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3; flex: 1;
+  }
+
+  .topbar-date {
+    font-family: 'Roboto Mono', monospace; font-size: 11px;
+    font-weight: 500; color: rgba(30,39,30,0.6);
+  }
+
+  /* CARD */
+  .card {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow); width: calc(100% - 32px); max-width: 420px;
+    margin: 12px 0; padding: 14px 18px;
+    display: flex; flex-direction: column; gap: 0; flex: 1; overflow: hidden;
+  }
+
+  /* STATS ROW */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 8px; }
+
+  .stat-box { flex: 1; text-align: center; padding: 6px 0; }
+
+  .stat-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px;
+  }
+
+  .stat-number {
+    font-family: 'Roboto Mono', monospace; font-size: 28px; font-weight: 500;
+    color: var(--green); line-height: 1.1;
+    transition: transform 0.15s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  .stat-number.bump { transform: scale(1.08); }
+
+  .stat-sub { font-size: 10px; font-weight: 600; color: var(--gray-500); margin-top: 2px; }
+  .stat-sub span { color: var(--green); }
+
+  /* OTROS STATS */
+  .stats-otros {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 5px 0; margin-bottom: 8px; border-top: 1px dashed var(--gray-100);
+  }
+
+  .stat-otros-item {
+    font-size: 11px; font-weight: 600; color: var(--gray-500);
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  .stat-otros-item strong {
+    font-family: 'Roboto Mono', monospace; font-weight: 500; color: var(--gray-800);
+  }
+
+  /* PROGRESS BAR */
+  .progress-section {
+    margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--gray-100);
+  }
+
+  .progress-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;
+  }
+
+  .progress-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--gray-500);
+  }
+
+  .progress-pct {
+    font-family: 'Roboto Mono', monospace; font-size: 12px; font-weight: 500; color: var(--green);
+  }
+
+  .progress-track {
+    width: 100%; height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%; background: var(--green); border-radius: 4px;
+    transition: width 0.4s ease; min-width: 0;
+  }
+
+  .progress-meta {
+    font-size: 10px; font-weight: 600; color: var(--gray-500); margin-top: 4px; text-align: right;
+  }
+
+  .progress-meta span { color: var(--green); }
+
+  /* FORM */
+  .form-section { flex: 0 0 auto; margin-bottom: 8px; }
+
+  .label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 5px;
+  }
+
+  .select-wrapper { position: relative; margin-bottom: 8px; }
+
+  select {
+    width: 100%; appearance: none; background: var(--gray-50);
+    border: 1.5px solid var(--gray-300); border-radius: var(--radius-sm);
+    padding: 10px 40px 10px 14px; font-family: 'Montserrat', sans-serif;
+    font-size: 15px; font-weight: 600; color: var(--gray-800);
+    cursor: pointer; outline: none; transition: border-color 0.2s;
+  }
+
+  select:focus { border-color: var(--green); }
+
+  .select-arrow {
+    position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--green);
+  }
+
+  .selects-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .selects-row .select-wrapper { margin-bottom: 0; }
+  .selects-row .select-wrapper:first-child { flex: 0 0 42%; }
+  .selects-row .select-wrapper:last-child { flex: 1; }
+
+  .input-row { display: flex; gap: 8px; }
+
+  .input-group { flex: 1; display: flex; flex-direction: column; }
+
+  .input-group label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 4px;
+  }
+
+  input[type="number"], input[type="text"] {
+    width: 100%; background: var(--gray-50); border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 600;
+    color: var(--gray-800); outline: none; transition: border-color 0.2s;
+  }
+
+  input:focus { border-color: var(--green); }
+  input::placeholder { color: var(--gray-300); font-weight: 400; }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+
+  /* BUTTON */
+  .section-button { flex: 0 0 auto; margin-bottom: 8px; }
+
+  .btn-register {
+    background: var(--green-light); border: 2px solid var(--green-mid);
+    border-radius: var(--radius); width: 100%; padding: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    cursor: pointer; user-select: none; outline: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .btn-register:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-register:not(:disabled):active { transform: scale(0.97); background: var(--green-mid); }
+  .btn-register.success { background: var(--green); border-color: var(--green-dark); }
+
+  .btn-icon {
+    width: 36px; height: 36px; background: var(--green); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; box-shadow: 0 3px 10px rgba(0,135,61,0.30);
+  }
+
+  .btn-register.success .btn-icon { background: rgba(255,255,255,0.2); box-shadow: none; }
+
+  .btn-text {
+    font-size: 14px; font-weight: 700; color: var(--green);
+    letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.15s;
+  }
+
+  .btn-register.success .btn-text { color: var(--white); }
+
+  /* HISTORY */
+  .history-section {
+    flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  }
+
+  .history-list {
+    display: flex; flex-direction: column; gap: 5px;
+    overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch;
+  }
+
+  .history-item {
+    display: flex; align-items: center; background: var(--gray-50);
+    border-radius: var(--radius-sm); border-left: 3px solid var(--green);
+    padding: 6px 8px 6px 10px; animation: slideIn 0.2s ease; flex-shrink: 0; gap: 6px;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .history-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+  .history-top-row { display: flex; align-items: center; gap: 6px; }
+
+  .history-time {
+    font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--gray-500); font-weight: 400;
+  }
+
+  .history-cliente-tag {
+    font-size: 8px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 1px 5px; border-radius: 3px; background: var(--green-light); color: var(--green);
+  }
+
+  .history-cliente-tag.otros { background: var(--orange-light); color: var(--orange); }
+
+  .history-material {
+    font-size: 12px; font-weight: 700; color: var(--gray-800);
+    text-transform: uppercase; letter-spacing: 0.03em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .history-details {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0;
+  }
+
+  .history-peso {
+    font-family: 'Roboto Mono', monospace; font-size: 12px; font-weight: 500; color: var(--green);
+  }
+
+  .history-ticket { font-size: 9px; font-weight: 600; color: var(--gray-500); }
+
+  .btn-delete {
+    background: none; border: none; cursor: pointer; color: var(--gray-300);
+    padding: 5px; border-radius: 6px; display: flex; align-items: center;
+    transition: color 0.15s, background 0.15s; flex-shrink: 0;
+  }
+
+  .btn-delete:active { color: var(--red); background: var(--red-light); }
+
+  .empty-state {
+    text-align: center; color: var(--gray-500); font-size: 11px;
+    font-weight: 600; padding: 16px 0; letter-spacing: 0.03em;
+  }
+
+  /* STATUS */
+  .status-wrap { flex: 0 0 auto; margin-top: 4px; }
+
+  .status-bar {
+    text-align: center; font-size: 11px; font-weight: 600;
+    color: var(--gray-500); min-height: 14px; letter-spacing: 0.03em;
+  }
+
+  .status-bar.error { color: var(--red); }
+  .status-bar.ok    { color: var(--green); }
+
+  /* SKELETON */
+  .skeleton {
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+    background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px;
+  }
+
+  .skeleton-stat { width: 60px; height: 32px; margin: 4px auto; border-radius: 6px; }
+  .skeleton-item { height: 50px; border-radius: var(--radius-sm); margin-bottom: 5px; }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 100; align-items: center; justify-content: center; padding: 20px;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal-box {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25); padding: 24px 20px;
+    width: 100%; max-width: 340px; text-align: center;
+  }
+
+  .modal-title { font-size: 14px; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
+
+  .modal-detail { font-size: 12px; color: var(--gray-500); margin-bottom: 6px; line-height: 1.5; }
+  .modal-detail strong { color: var(--gray-800); font-weight: 700; }
+
+  .modal-buttons { display: flex; gap: 10px; margin-top: 16px; }
+
+  .modal-btn {
+    flex: 1; padding: 10px; border-radius: var(--radius-sm);
+    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; border: none; outline: none; transition: opacity 0.15s;
+  }
+
+  .modal-btn:active { opacity: 0.7; }
+  .modal-btn-cancel { background: var(--gray-100); color: var(--gray-500); }
+  .modal-btn-delete { background: var(--red); color: var(--white); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <img class="topbar-logo" src="https://raw.githubusercontent.com/josuecbritos/ambipar/main/paladas/ambipar-logo.png" alt="Ambipar">
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Registro Enfardadora<br>Clasificación Giri</div>
+  <div class="topbar-date" id="topbarDate"></div>
+</div>
+
+<div class="card">
+
+  <!-- STATS RESIMPLE -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">Fardos Resimple</div>
+      <div class="stat-number" id="statFardosR"><div class="skeleton skeleton-stat"></div></div>
+      <div class="stat-sub" id="statFardosRSub"></div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">KG Resimple</div>
+      <div class="stat-number" id="statKgR"><div class="skeleton skeleton-stat"></div></div>
+      <div class="stat-sub" id="statKgRSub"></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS (solo Resimple) -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="progress-label" id="progressLabel">Meta Resimple</span>
+      <span class="progress-pct" id="progressPct">—</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-meta" id="progressMeta"></div>
+  </div>
+
+  <!-- STATS OTROS (aparece solo si hay) -->
+  <div class="stats-otros" id="statsOtros" style="display:none;">
+    <div class="stat-otros-item">Otros: <strong id="statFardosO">0</strong> fardos</div>
+    <div class="stat-otros-item"><strong id="statKgO">0</strong> kg</div>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-section">
+    <div class="label">Registrar Fardo</div>
+    <div class="selects-row">
+      <div class="select-wrapper">
+        <select id="cliente">
+          <option value="">— Cliente —</option>
+        </select>
+        <div class="select-arrow">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </div>
+      <div class="select-wrapper">
+        <select id="material">
+          <option value="">— Material —</option>
+          <option value="Cartón">Cartón</option>
+          <option value="P2">P2</option>
+          <option value="Tetra">Tetra</option>
+          <option value="Papel">Papel</option>
+          <option value="Celulosa Mixta">Celulosa Mixta</option>
+          <option value="Rechazo">Rechazo</option>
+          <option value="PET Color">PET Color</option>
+          <option value="PET Transparente">PET Transparente</option>
+          <option value="Lata Aluminio">Lata Aluminio</option>
+        </select>
+        <div class="select-arrow">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="input-row">
+      <div class="input-group">
+        <label for="peso">Peso (kg)</label>
+        <input type="number" id="peso" placeholder="0" inputmode="numeric" min="0" step="1">
+      </div>
+      <div class="input-group">
+        <label for="ticket">Nº Ticket Báscula</label>
+        <input type="text" id="ticket" placeholder="—" inputmode="numeric">
+      </div>
+    </div>
+  </div>
+
+  <!-- BUTTON -->
+  <div class="section-button">
+    <button class="btn-register" id="btnRegistrar" onclick="registrarFardo()">
+      <div class="btn-icon">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      <div class="btn-text">Registrar Fardo</div>
+    </button>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-section">
+    <div class="label">Registros del día</div>
+    <div class="history-list" id="historyList">
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-wrap">
+    <div class="status-bar" id="statusBar"></div>
+  </div>
+
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-title">Eliminar registro</div>
+    <div class="modal-detail" id="modalDetail"></div>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="modal-btn modal-btn-delete" onclick="confirmarEliminar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ══════════════════════════════════════════════════════════
+  //  CONFIGURACIÓN — Reemplaza esta URL con tu Apps Script
+  // ══════════════════════════════════════════════════════════
+  const API_URL = "https://script.google.com/macros/s/AKfycbyLrCLKt1iW5QtckaToGsoYjK8q5ojzUnAzFi_JRP0nJPIlmBmvTiDUAvQuoFpxW4I/exec";
+  const TOKEN   = "paladas2026";
+  const CLIENTE_META = "Resimple";
+
+  let registros = [];
+  let metaKg = 12000;
+  let clientes = [];
+  let pendingDeleteId = null;
+
+  // ── INIT ──────────────────────────────────────────
+  window.addEventListener("DOMContentLoaded", () => {
+    mostrarFechaHoy();
+    cargarDatos();
+  });
+
+  function mostrarFechaHoy() {
+    const h = new Date();
+    document.getElementById("topbarDate").textContent =
+      `${String(h.getDate()).padStart(2,"0")}/${String(h.getMonth()+1).padStart(2,"0")}/${h.getFullYear()}`;
+  }
+
+  // ── API ───────────────────────────────────────────
+  async function cargarDatos() {
+    try {
+      const res = await fetch(`${API_URL}?token=${TOKEN}`, { redirect: "follow" });
+      const data = await res.json();
+      registros = data.registros || [];
+      metaKg = data.meta_kg || 12000;
+      clientes = data.clientes || [];
+      poblarClientes();
+      actualizarUI();
+    } catch (err) {
+      setStatus("Error al cargar datos", "error");
+    }
+  }
+
+  function poblarClientes() {
+    const sel = document.getElementById("cliente");
+    const guardado = sessionStorage.getItem("cliente_fardos") || "";
+    sel.innerHTML = '<option value="">— Cliente —</option>';
+    clientes.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    if (guardado && clientes.includes(guardado)) sel.value = guardado;
+  }
+
+  function validarFormulario() {
+    const cliente = document.getElementById("cliente").value;
+    const material = document.getElementById("material").value;
+    const peso = document.getElementById("peso").value;
+    const ticket = document.getElementById("ticket").value.trim();
+
+    if (!cliente)  { setStatus("Seleccione un cliente", "error"); return null; }
+    if (!material) { setStatus("Seleccione un material", "error"); return null; }
+    if (!peso || Number(peso) <= 0) { setStatus("Ingrese un peso válido", "error"); return null; }
+    if (!ticket)   { setStatus("Ingrese el Nº de ticket", "error"); return null; }
+
+    return { cliente, material, peso_kg: Number(peso), ticket };
+  }
+
+  async function registrarFardo() {
+    const datos = validarFormulario();
+    if (!datos) return;
+
+    const btn = document.getElementById("btnRegistrar");
+    btn.disabled = true;
+    sessionStorage.setItem("cliente_fardos", datos.cliente);
+
+    const registro = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      cliente: datos.cliente,
+      material: datos.material,
+      peso_kg: datos.peso_kg,
+      ticket: datos.ticket
+    };
+
+    registros.push(registro);
+    actualizarUI();
+    animarBoton();
+    document.getElementById("peso").value = "";
+    document.getElementById("ticket").value = "";
+
+    try {
+      await fetch(`${API_URL}?token=${TOKEN}`, {
+        method: "POST", redirect: "follow",
+        body: JSON.stringify(registro)
+      });
+      setStatus("✓ Guardado", "ok");
+      setTimeout(() => setStatus("", ""), 2000);
+    } catch (err) {
+      registros = registros.filter(r => r.id !== registro.id);
+      actualizarUI();
+      setStatus("Error al guardar", "error");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── ELIMINAR ──────────────────────────────────────
+  function pedirEliminar(id) {
+    const r = registros.find(x => x.id === id);
+    if (!r) return;
+    pendingDeleteId = id;
+    document.getElementById("modalDetail").innerHTML =
+      `<strong>${r.cliente}</strong> · ${r.material}<br>${formatNum(r.peso_kg)} kg · Ticket: ${r.ticket} · ${formatHora(r.timestamp)}`;
+    document.getElementById("modalOverlay").classList.add("active");
+  }
+
+  function cerrarModal() {
+    pendingDeleteId = null;
+    document.getElementById("modalOverlay").classList.remove("active");
+  }
+
+  async function confirmarEliminar() {
+    const id = pendingDeleteId;
+    cerrarModal();
+    if (!id) return;
+
+    registros = registros.filter(r => r.id !== id);
+    actualizarUI();
+
+    try {
+      await fetch(`${API_URL}?token=${TOKEN}`, {
+        method: "POST", redirect: "follow",
+        body: JSON.stringify({ _delete: true, id })
+      });
+    } catch (err) {
+      setStatus("Error al eliminar", "error");
+      cargarDatos();
+    }
+  }
+
+  // ── UI ────────────────────────────────────────────
+  function esHoy(ts) {
+    return new Date(ts).toDateString() === new Date().toDateString();
+  }
+
+  function formatHora(ts) {
+    const d = new Date(ts);
+    return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
+
+  function formatNum(n) {
+    return Number(n).toLocaleString("es-CL");
+  }
+
+  function actualizarUI() {
+    const hoy = registros.filter(r => esHoy(r.timestamp));
+    const resimple = hoy.filter(r => r.cliente === CLIENTE_META);
+    const otros = hoy.filter(r => r.cliente !== CLIENTE_META);
+
+    const fR = resimple.length;
+    const kgR = resimple.reduce((s, r) => s + Number(r.peso_kg || 0), 0);
+    const fO = otros.length;
+    const kgO = otros.reduce((s, r) => s + Number(r.peso_kg || 0), 0);
+
+    const unaHora = Date.now() - 3600000;
+    const rUH = resimple.filter(r => new Date(r.timestamp).getTime() > unaHora).length;
+
+    // Stats Resimple
+    document.getElementById("statFardosR").textContent = fR;
+    document.getElementById("statFardosRSub").innerHTML =
+      rUH > 0 ? `+${rUH} <span>última hora</span>` : "";
+    document.getElementById("statKgR").textContent = formatNum(kgR);
+    document.getElementById("statKgRSub").innerHTML = `Meta: <span>${formatNum(metaKg)} kg</span>`;
+
+    // Progress
+    const pct = metaKg > 0 ? Math.min(100, Math.round((kgR / metaKg) * 100)) : 0;
+    document.getElementById("progressPct").textContent = pct + "%";
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("progressLabel").textContent = `Meta Resimple · ${formatNum(metaKg)} kg`;
+    document.getElementById("progressMeta").innerHTML = `<span>${formatNum(kgR)}</span> de ${formatNum(metaKg)} kg`;
+
+    // Otros
+    const otrosDiv = document.getElementById("statsOtros");
+    if (fO > 0) {
+      otrosDiv.style.display = "flex";
+      document.getElementById("statFardosO").textContent = fO;
+      document.getElementById("statKgO").textContent = formatNum(kgO);
+    } else {
+      otrosDiv.style.display = "none";
+    }
+
+    // History
+    const lista = document.getElementById("historyList");
+    const items = hoy.slice().reverse();
+
+    if (items.length === 0) {
+      lista.innerHTML = '<div class="empty-state">Sin registros hoy</div>';
+      return;
+    }
+
+    lista.innerHTML = items.map(r => {
+      const esR = r.cliente === CLIENTE_META;
+      const tagCls = esR ? "history-cliente-tag" : "history-cliente-tag otros";
+      return `
+      <div class="history-item">
+        <div class="history-info">
+          <div class="history-top-row">
+            <span class="history-time">${formatHora(r.timestamp)}</span>
+            <span class="${tagCls}">${r.cliente}</span>
+          </div>
+          <span class="history-material">${r.material}</span>
+        </div>
+        <div class="history-details">
+          <span class="history-peso">${formatNum(r.peso_kg)} kg</span>
+          <span class="history-ticket">T-${r.ticket}</span>
+        </div>
+        <button class="btn-delete" onclick="pedirEliminar('${r.id}')" title="Eliminar">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>`;
+    }).join("");
+  }
+
+  function animarBoton() {
+    const btn = document.getElementById("btnRegistrar");
+    btn.classList.add("success");
+    setTimeout(() => btn.classList.remove("success"), 700);
+    const s1 = document.getElementById("statFardosR");
+    const s2 = document.getElementById("statKgR");
+    s1.classList.add("bump");
+    s2.classList.add("bump");
+    setTimeout(() => { s1.classList.remove("bump"); s2.classList.remove("bump"); }, 200);
+  }
+
+  function setStatus(msg, tipo) {
+    const bar = document.getElementById("statusBar");
+    bar.innerHTML = msg;
+    bar.className = "status-bar" + (tipo ? ` ${tipo}` : "");
+  }
+</script>
+
+</body>
+</html>
