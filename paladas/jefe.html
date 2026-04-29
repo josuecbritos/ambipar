@@ -21,284 +21,220 @@
     --yellow-light: #fff8ee;
     --red: #c0392b;
     --red-light: #fdf0ee;
+    --blue: #2b6cb0;
+    --blue-light: #ebf4ff;
+    --blue-mid: #90cdf4;
     --shadow: 0 4px 24px rgba(0,87,40,0.13);
     --radius: 16px;
     --radius-sm: 8px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
   html, body { height: 100%; height: 100dvh; }
 
   body {
-    font-family: 'Montserrat', sans-serif;
-    background: var(--gray-50);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow: hidden;
+    font-family: 'Montserrat', sans-serif; background: var(--gray-50);
+    display: flex; flex-direction: column; align-items: center; overflow: hidden;
   }
 
-  /* TOP BAR */
   .topbar {
-    width: 100%;
-    background: #BDFE00;
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
+    width: 100%; background: #BDFE00; padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
   }
-
   .topbar-logo { height: 28px; width: auto; display: block; }
-
   .topbar-sep { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
-
   .topbar-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: #1e271e;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    line-height: 1.3;
+    font-size: 11px; font-weight: 700; color: #1e271e;
+    letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3;
   }
 
-  /* CARD */
   .card {
-    background: var(--white);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    width: calc(100% - 32px);
-    max-width: 420px;
-    margin: 16px 0;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex: 1;
-    overflow: hidden;
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow); width: calc(100% - 32px); max-width: 420px;
+    margin: 12px 0; padding: 14px 18px;
+    display: flex; flex-direction: column; flex: 1; overflow: hidden;
   }
 
-  /* LABEL */
   .label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--gray-500);
-    margin-bottom: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 4px;
   }
 
-  /* ALERTA ÚLTIMA PALADA */
+  /* TABS */
+  .tabs {
+    display: flex; gap: 0; margin-bottom: 10px; flex-shrink: 0;
+    background: var(--gray-50); border-radius: var(--radius-sm); padding: 3px;
+  }
+  .tab-btn {
+    flex: 1; padding: 8px 0; text-align: center; border: none; outline: none;
+    background: none; border-radius: 6px; cursor: pointer;
+    font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--gray-500); letter-spacing: 0.04em; transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--white); color: var(--green);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+
+  .tab-content { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .tab-content.active { display: flex; }
+
+  /* ═══ HOY ═══ */
   .alert-box {
-    border-radius: var(--radius-sm);
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    flex-shrink: 0;
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
     transition: background 0.4s, color 0.4s;
   }
-
   .alert-box.green  { background: var(--green-light); color: var(--green-dark); }
   .alert-box.yellow { background: var(--yellow-light); color: #7a4f00; }
   .alert-box.red    { background: var(--red-light);    color: var(--red); }
 
-  .alert-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    animation: pulse 2s infinite;
-  }
-
+  .alert-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; animation: pulse 2s infinite; }
   .green  .alert-dot { background: var(--green); }
   .yellow .alert-dot { background: var(--yellow); }
   .red    .alert-dot { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
-  }
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; margin-top: 10px; }
 
-  /* STATS ROW */
-  .stats-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-
-  .stat-box {
-    background: var(--gray-50);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    text-align: center;
-  }
+  .stat-box { background: var(--gray-50); border-radius: var(--radius-sm); padding: 10px 12px; text-align: center; }
 
   .stat-value {
-    font-family: 'Roboto Mono', monospace;
-    font-size: clamp(28px, 6vw, 40px);
-    font-weight: 500;
-    color: var(--green);
-    line-height: 1;
-    margin-top: 2px;
+    font-family: 'Roboto Mono', monospace; font-size: clamp(28px,6vw,40px);
+    font-weight: 500; color: var(--green); line-height: 1; margin-top: 2px;
   }
+  .stat-sub { font-size: 10px; font-weight: 700; color: var(--green); margin-top: 3px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .meta-text { font-size: 10px; font-weight: 700; color: var(--green); margin-top: 3px; letter-spacing: 0.04em; text-transform: uppercase; }
 
-  .stat-sub {
-    font-size: 10px; font-weight: 700; color: var(--green);
-    margin-top: 3px; letter-spacing: 0.04em; text-transform: uppercase;
-  }
-
-  /* META TEXT */
-  .meta-text {
-    font-size: 10px; font-weight: 700; color: var(--green);
-    margin-top: 3px; letter-spacing: 0.04em; text-transform: uppercase;
-  }
-
-  /* CHART */
-  .chart-section { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+  .chart-section { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; margin-top: 10px; }
 
   .chart-wrap {
-    flex: 1;
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    padding-bottom: 20px;
-    position: relative;
-    min-height: 0;
+    flex: 1; display: flex; align-items: flex-end; gap: 4px;
+    padding-bottom: 20px; position: relative; min-height: 0;
   }
 
-  .bar-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    height: 100%;
-    position: relative;
-  }
-
-  .bar {
-    width: 100%;
-    background: var(--green-mid);
-    border-radius: 4px 4px 0 0;
-    transition: height 0.4s ease;
-    min-height: 3px;
-    position: relative;
-  }
-
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
+  .bar { width: 100%; background: var(--green-mid); border-radius: 4px 4px 0 0; transition: height 0.4s ease; min-height: 3px; }
   .bar.current { background: var(--yellow); }
+  .bar.over  { background: var(--green); }
+  .bar.under { background: #e07a5f; }
+  .bar-count { font-size: 9px; font-weight: 700; color: var(--gray-500); margin-bottom: 2px; }
+  .bar-label { position: absolute; bottom: -18px; font-size: 8px; font-weight: 600; color: var(--gray-500); white-space: nowrap; }
+  .chart-baseline { position: absolute; bottom: 20px; left: 0; right: 0; height: 1px; background: var(--gray-100); }
 
-  .bar-count {
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--gray-500);
-    margin-bottom: 2px;
+  .history-section { flex: 0 0 auto; display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+  .history-list { display: flex; flex-direction: column; gap: 5px; max-height: 230px; overflow-y: auto; }
+  .history-item {
+    display: flex; align-items: center; background: var(--gray-50);
+    border-radius: var(--radius-sm); border-left: 3px solid var(--green);
+    padding: 7px 10px; animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)} }
+  .history-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+  .history-time { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--gray-800); font-weight: 500; }
+  .history-op { font-size: 10px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: 0.05em; }
+  .empty-state { text-align: center; color: var(--gray-500); font-size: 11px; font-weight: 600; padding: 10px 0; }
+
+  /* ═══ HISTÓRICO ═══ */
+
+  /* Summary cards */
+  .hist-block { border-radius: var(--radius-sm); padding: 8px; margin-bottom: 8px; flex-shrink: 0; }
+  .hist-block.semana { background: var(--green-light); }
+  .hist-block.mes    { background: var(--blue-light); }
+
+  .hist-block-title {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 5px;
+  }
+  .hist-block.semana .hist-block-title { color: var(--green-dark); }
+  .hist-block.mes    .hist-block-title { color: var(--blue); }
+
+  .hist-cards { display: flex; gap: 6px; }
+
+  .hist-card {
+    flex: 1; background: var(--white); border-radius: 6px;
+    padding: 8px 6px; text-align: center;
   }
 
-  .bar-label {
-    position: absolute;
-    bottom: -18px;
-    font-size: 9px;
-    font-weight: 600;
-    color: var(--gray-500);
+  .hist-card-label {
+    font-size: 8px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px;
+  }
+
+  .hist-card-value {
+    font-family: 'Roboto Mono', monospace; font-size: 20px;
+    font-weight: 500; line-height: 1.2;
+  }
+  .hist-block.semana .hist-card-value { color: var(--green); }
+  .hist-block.mes    .hist-card-value { color: var(--blue); }
+
+  .hist-card-meta {
+    font-size: 9px; font-weight: 600; color: var(--gray-500); margin-top: 2px;
+  }
+
+  /* Pills */
+  .pills {
+    display: flex; gap: 0; flex-shrink: 0; margin-bottom: 8px;
+    background: var(--gray-50); border-radius: 6px; padding: 2px;
+  }
+  .pill-btn {
+    flex: 1; padding: 6px 2px; text-align: center; border: none; outline: none;
+    background: none; border-radius: 5px; cursor: pointer;
+    font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700;
+    color: var(--gray-500); letter-spacing: 0.02em; transition: all 0.2s;
     white-space: nowrap;
   }
-
-  .chart-baseline {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--gray-100);
+  .pill-btn.active {
+    background: var(--white); color: var(--green);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
 
-  /* HISTORY */
-  .history-section { flex: 0 0 auto; display: flex; flex-direction: column; gap: 5px; }
-  .history-list { display: flex; flex-direction: column; gap: 5px; max-height: 230px; overflow-y: auto; }
+  /* Hist chart */
+  .hist-chart-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
-  .history-item {
-    display: flex;
-    align-items: center;
-    background: var(--gray-50);
-    border-radius: var(--radius-sm);
-    border-left: 3px solid var(--green);
-    padding: 7px 10px 7px 10px;
-    animation: slideIn 0.2s ease;
+  .hist-chart-wrap {
+    flex: 1; display: flex; align-items: flex-end; gap: 3px;
+    padding-bottom: 20px; position: relative; min-height: 100px;
   }
 
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
+  .hist-chart-wrap .bar-label { font-size: 7px; }
+
+  /* Meta line */
+  .meta-line {
+    position: absolute; left: 0; right: 0;
+    border-top: 2px dashed var(--green); opacity: 0.7; pointer-events: none;
+    z-index: 10;
   }
-
-  .history-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
-
-  .history-time {
-    font-family: 'Roboto Mono', monospace;
-    font-size: 12px;
-    color: var(--gray-800);
-    font-weight: 500;
-  }
-
-  .history-op {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--green);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .empty-state {
-    text-align: center;
-    color: var(--gray-500);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 10px 0;
+  .meta-line-label {
+    position: absolute; right: 2px; top: -12px;
+    font-size: 7px; font-weight: 700; color: var(--green); opacity: 0.8;
   }
 
   /* SKELETON */
   .skeleton {
     background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.2s infinite;
-    border-radius: 6px;
+    background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px;
   }
   .skeleton-stat  { height: 40px; margin-top: 4px; }
   .skeleton-alert { height: 36px; }
   .skeleton-item  { height: 44px; border-radius: var(--radius-sm); }
+  @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
 
-  @keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  /* STATUS */
-  .status-wrap { flex: 0 0 auto; text-align: center; }
+  .status-wrap { flex: 0 0 auto; text-align: center; margin-top: 4px; }
   .btn-refresh {
-    background: none; border: none;
-    padding: 5px 6px; cursor: pointer; color: var(--gray-500);
-    display: flex; align-items: center; transition: color 0.15s;
+    background: none; border: none; padding: 5px 6px; cursor: pointer;
+    color: var(--gray-500); display: flex; align-items: center; transition: color 0.15s;
   }
-  .btn-refresh:active { color: var(--green); border-color: var(--green); }
+  .btn-refresh:active { color: var(--green); }
   .btn-refresh.spinning svg { animation: spin 0.6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .status-bar {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--gray-400);
-    letter-spacing: 0.03em;
-  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .status-bar { font-size: 10px; font-weight: 600; color: var(--gray-400); letter-spacing: 0.03em; }
   .status-bar.error { color: var(--red); }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div class="topbar">
   <img class="topbar-logo" src="https://raw.githubusercontent.com/josuecbritos/ambipar/main/paladas/ambipar-logo.png" alt="Ambipar">
   <div class="topbar-sep"></div>
@@ -307,56 +243,109 @@
 
 <div class="card">
 
-  <!-- ALERTA -->
-  <div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div class="label" style="margin-bottom:0;">Última palada</div>
-      <button class="btn-refresh" id="btnRefresh" onclick="refrescar()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5"/>
-          <path stroke-linecap="round" stroke-linejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L4 4m16 16l-1.64-1.64A9 9 0 0 1 3.51 15"/>
-        </svg>
-      </button>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('hoy')">Hoy</button>
+    <button class="tab-btn" onclick="switchTab('historico')">Histórico</button>
+  </div>
+
+  <!-- ═══ TAB HOY ═══ -->
+  <div class="tab-content active" id="tabHoy">
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="label" style="margin-bottom:0;">Última palada</div>
+        <button class="btn-refresh" id="btnRefresh" onclick="refrescar()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L4 4m16 16l-1.64-1.64A9 9 0 0 1 3.51 15"/>
+          </svg>
+        </button>
+      </div>
+      <div class="alert-box green" id="alertBox">
+        <div class="alert-dot"></div>
+        <span id="alertText"><span class="skeleton skeleton-alert" style="width:180px;display:inline-block;"></span></span>
+      </div>
     </div>
-    <div class="alert-box green" id="alertBox">
-      <div class="alert-dot"></div>
-      <span id="alertText"><span class="skeleton skeleton-alert" style="width:180px;display:inline-block;"></span></span>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="label">Paladas hoy</div>
+        <div class="stat-value" id="statTotal"><div class="skeleton skeleton-stat"></div></div>
+        <div class="meta-text" id="metaText"></div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Ritmo hoy</div>
+        <div class="stat-value" id="statRitmo"><div class="skeleton skeleton-stat"></div></div>
+        <div class="stat-sub">paladas / hora</div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="label">Paladas por hora hoy</div>
+      <div class="chart-wrap" id="chartWrap"><div class="chart-baseline"></div></div>
+    </div>
+
+    <div class="history-section">
+      <div class="label">Registros del día</div>
+      <div class="history-list" id="historyList">
+        <div class="skeleton skeleton-item"></div>
+        <div class="skeleton skeleton-item"></div>
+        <div class="skeleton skeleton-item"></div>
+      </div>
     </div>
   </div>
 
-  <!-- STATS -->
-  <div class="stats-row">
-    <div class="stat-box">
-      <div class="label">Paladas hoy</div>
-      <div class="stat-value" id="statTotal"><div class="skeleton skeleton-stat"></div></div>
-      <div class="meta-text" id="metaText"></div>
+  <!-- ═══ TAB HISTÓRICO ═══ -->
+  <div class="tab-content" id="tabHistorico">
+
+    <!-- Resumen semana -->
+    <div class="hist-block semana">
+      <div class="hist-block-title">Semana actual</div>
+      <div class="hist-cards">
+        <div class="hist-card">
+          <div class="hist-card-label">Total paladas</div>
+          <div class="hist-card-value" id="hSemTotal">—</div>
+          <div class="hist-card-meta" id="hSemTotalMeta"></div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-label">Prom. diario paladas</div>
+          <div class="hist-card-value" id="hSemProm">—</div>
+          <div class="hist-card-meta" id="hSemPromMeta"></div>
+        </div>
+      </div>
     </div>
-    <div class="stat-box">
-      <div class="label">Ritmo hoy</div>
-      <div class="stat-value" id="statRitmo"><div class="skeleton skeleton-stat"></div></div>
-      <div class="stat-sub">paladas / hora</div>
+
+    <!-- Resumen mes -->
+    <div class="hist-block mes">
+      <div class="hist-block-title" id="hMesTitulo">Mes actual</div>
+      <div class="hist-cards">
+        <div class="hist-card">
+          <div class="hist-card-label">Total paladas</div>
+          <div class="hist-card-value" id="hMesTotal">—</div>
+          <div class="hist-card-meta" id="hMesTotalMeta"></div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-label">Prom. diario paladas</div>
+          <div class="hist-card-value" id="hMesProm">—</div>
+          <div class="hist-card-meta" id="hMesPromMeta"></div>
+        </div>
+      </div>
     </div>
+
+    <!-- Pills -->
+    <div class="pills">
+      <button class="pill-btn active" data-pill="semana" onclick="switchPill('semana')">Sem. actual</button>
+      <button class="pill-btn" data-pill="14dias" onclick="switchPill('14dias')">14 días</button>
+      <button class="pill-btn" data-pill="semanal" onclick="switchPill('semanal')">Semanal</button>
+      <button class="pill-btn" data-pill="mensual" onclick="switchPill('mensual')">Mensual</button>
+    </div>
+
+    <!-- Chart -->
+    <div class="hist-chart-section">
+      <div class="hist-chart-wrap" id="histChartWrap"><div class="chart-baseline"></div></div>
+    </div>
+
   </div>
 
-  <!-- CHART -->
-  <div class="chart-section">
-    <div class="label">Paladas por hora hoy</div>
-    <div class="chart-wrap" id="chartWrap">
-      <div class="chart-baseline"></div>
-    </div>
-  </div>
-
-  <!-- HISTORY -->
-  <div class="history-section">
-    <div class="label">Registros del día</div>
-    <div class="history-list" id="historyList">
-      <div class="skeleton skeleton-item"></div>
-      <div class="skeleton skeleton-item"></div>
-      <div class="skeleton skeleton-item"></div>
-    </div>
-  </div>
-
-  <!-- STATUS -->
   <div class="status-wrap">
     <div class="status-bar" id="statusBar"></div>
   </div>
@@ -366,207 +355,374 @@
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycby-R28J6WHvMln9BDGXViTngt5nqmnxbzB1PVGq5uyxbN7riMkT7Ob5jh-kUX15m4s/exec";
   const TOKEN   = "paladas2026";
+  const META    = 125;
+  const META_SEM = 625; // 5 días x 125
+  const MESES_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const DIAS_ES_CORTO = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"];
 
   let registros = [];
+  let tabActual = "hoy";
+  let pillActual = "semana";
+  let porDia = {};  // cache
 
-  // ── INIT ─────────────────────────────────────────
   cargarDatos();
   setInterval(cargarDatos, 30000);
+
+  // ── TABS & PILLS ────────────────────────────────
+  function switchTab(tab) {
+    tabActual = tab;
+    document.querySelectorAll(".tab-btn").forEach((b, i) =>
+      b.classList.toggle("active", (i===0 && tab==="hoy") || (i===1 && tab==="historico")));
+    document.getElementById("tabHoy").classList.toggle("active", tab==="hoy");
+    document.getElementById("tabHistorico").classList.toggle("active", tab==="historico");
+    if (tab === "historico") renderHistorico();
+  }
+
+  function switchPill(pill) {
+    pillActual = pill;
+    document.querySelectorAll(".pill-btn").forEach(b =>
+      b.classList.toggle("active", b.dataset.pill === pill));
+    renderHistChart();
+  }
 
   // ── API ──────────────────────────────────────────
   async function cargarDatos() {
     try {
       const res = await fetch(`${API_URL}?token=${TOKEN}`, { redirect: "follow" });
       registros = await res.json();
-      actualizarUI();
+      // Build day map
+      porDia = {};
+      registros.forEach(r => {
+        const k = fechaKey(new Date(r.timestamp));
+        porDia[k] = (porDia[k] || 0) + 1;
+      });
+      actualizarHoy();
+      if (tabActual === "historico") renderHistorico();
       setStatus("");
-    } catch (err) {
-      setStatus("Error al cargar datos");
+    } catch (err) { setStatus("Error al cargar datos"); }
+  }
+
+  // ── HELPERS ──────────────────────────────────────
+  function fechaKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+
+  function esHoy(ts) { return new Date(ts).toDateString() === new Date().toDateString(); }
+
+  function minutosDesde(ts) { return Math.floor((Date.now() - new Date(ts).getTime()) / 60000); }
+
+  function esLaboral(d) { const dow = d.getDay(); return dow >= 1 && dow <= 5; }
+
+  function diasLaboralesMes(year, month) {
+    let count = 0;
+    const ultimoDia = new Date(year, month + 1, 0).getDate();
+    for (let d = 1; d <= ultimoDia; d++) {
+      const fecha = new Date(year, month, d);
+      if (esLaboral(fecha)) count++;
     }
+    return count;
   }
 
-  // ── LÓGICA ───────────────────────────────────────
-  function esHoy(ts) {
-    return new Date(ts).toDateString() === new Date().toDateString();
+  function getLunes(d) {
+    const r = new Date(d);
+    const day = r.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    r.setDate(r.getDate() + diff);
+    r.setHours(0,0,0,0);
+    return r;
   }
 
-  function minutosDesde(ts) {
-    return Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  function getWeekNumber(d) {
+    const tmp = new Date(d.getTime());
+    tmp.setHours(0,0,0,0);
+    tmp.setDate(tmp.getDate() + 3 - (tmp.getDay() + 6) % 7);
+    const w1 = new Date(tmp.getFullYear(), 0, 4);
+    return 1 + Math.round(((tmp - w1) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
   }
+
+  function formatNum(n) { return Number(n).toLocaleString("es-CL"); }
 
   function tiempoEfectivoTranscurrido(hoy) {
     if (hoy.length === 0) return 0;
-
-    const ahora = new Date();
-    const hoyBase = new Date(ahora);
-
-    // Inicio: mínimo entre 9:30 y la primera palada
-    const inicioPredefinido = new Date(hoyBase);
-    inicioPredefinido.setHours(9, 30, 0, 0);
-    const primerasPalada = new Date(hoy[0].timestamp);
-    const inicio = primerasPalada < inicioPredefinido ? primerasPalada : inicioPredefinido;
-
-    // Fin: máximo entre 18:00 y la última palada, pero no más que ahora
-    const finPredefinido = new Date(hoyBase);
-    finPredefinido.setHours(18, 0, 0, 0);
-    const ultimaPalada = new Date(hoy[hoy.length - 1].timestamp);
-    const finMaximo = ultimaPalada > finPredefinido ? ultimaPalada : finPredefinido;
-    const fin = ahora < finMaximo ? ahora : finMaximo;
-
-    // Tiempo total en minutos
-    let minutos = Math.max(0, (fin - inicio) / 60000);
-
-    // Descontar break fijo 12:30–13:30 si cae dentro del rango
-    const breakInicio = new Date(hoyBase);
-    breakInicio.setHours(12, 30, 0, 0);
-    const breakFin = new Date(hoyBase);
-    breakFin.setHours(13, 30, 0, 0);
-
-    if (fin > breakInicio && inicio < breakFin) {
-      const overlapInicio = inicio > breakInicio ? inicio : breakInicio;
-      const overlapFin    = fin < breakFin ? fin : breakFin;
-      minutos -= Math.max(0, (overlapFin - overlapInicio) / 60000);
+    const ahora = new Date(), base = new Date(ahora);
+    const ini0 = new Date(base); ini0.setHours(9,30,0,0);
+    const p0 = new Date(hoy[0].timestamp);
+    const inicio = p0 < ini0 ? p0 : ini0;
+    const fin0 = new Date(base); fin0.setHours(18,0,0,0);
+    const uP = new Date(hoy[hoy.length-1].timestamp);
+    const finMax = uP > fin0 ? uP : fin0;
+    const fin = ahora < finMax ? ahora : finMax;
+    let mins = Math.max(0, (fin - inicio) / 60000);
+    const bI = new Date(base); bI.setHours(12,30,0,0);
+    const bF = new Date(base); bF.setHours(13,30,0,0);
+    if (fin > bI && inicio < bF) {
+      const oi = inicio > bI ? inicio : bI;
+      const of2 = fin < bF ? fin : bF;
+      mins -= Math.max(0, (of2 - oi) / 60000);
     }
-
-    return minutos;
+    return mins;
   }
 
-  function formatearFechaHora(ts) {
+  function fmtFechaHora(ts) {
     const d = new Date(ts);
-    const dia = String(d.getDate()).padStart(2, "0");
-    const mes = String(d.getMonth() + 1).padStart(2, "0");
-    const anio = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    const ss = String(d.getSeconds()).padStart(2, "0");
-    return `${dia}/${mes}/${anio} · ${hh}:${mm}:${ss}`;
+    return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} · ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
   }
 
-  // ── UI ───────────────────────────────────────────
-  function actualizarUI() {
+  // ═══════════════════════════════════════════════════
+  //  TAB HOY
+  // ═══════════════════════════════════════════════════
+  function actualizarHoy() {
     const hoy = registros.filter(r => esHoy(r.timestamp));
-
-    // Alerta última palada
-    const alertBox  = document.getElementById("alertBox");
-    const alertText = document.getElementById("alertText");
-
+    const ab = document.getElementById("alertBox"), at = document.getElementById("alertText");
     if (hoy.length === 0) {
-      alertBox.className = "alert-box green";
-      alertText.textContent = "Sin registros hoy";
+      ab.className = "alert-box green"; at.textContent = "Sin registros hoy";
     } else {
-      const ultimo = hoy[hoy.length - 1];
-      const mins   = minutosDesde(ultimo.timestamp);
-      let texto, clase;
-
-      if (mins < 10) {
-        clase  = "green";
-        texto  = `Hace ${mins} min — ${ultimo.operador}`;
-      } else if (mins < 20) {
-        clase  = "yellow";
-        texto  = `Sin actividad hace ${mins} min`;
-      } else {
-        clase  = "red";
-        const horas = Math.floor(mins / 60);
-        const restoMins = mins % 60;
-        texto  = horas > 0
-          ? `Sin actividad hace ${horas}h ${restoMins}min`
-          : `Sin actividad hace ${mins} min`;
-      }
-
-      alertBox.className = `alert-box ${clase}`;
-      alertText.textContent = texto;
+      const u = hoy[hoy.length-1], m = minutosDesde(u.timestamp);
+      let t, c;
+      if (m < 10) { c="green"; t=`Hace ${m} min — ${u.operador}`; }
+      else if (m < 20) { c="yellow"; t=`Sin actividad hace ${m} min`; }
+      else { c="red"; const h=Math.floor(m/60),r=m%60; t=h>0?`Sin actividad hace ${h}h ${r}min`:`Sin actividad hace ${m} min`; }
+      ab.className = `alert-box ${c}`; at.textContent = t;
     }
-
-    // Total + meta
-    const META = 125;
     document.getElementById("statTotal").textContent = hoy.length;
-    const pct = ((hoy.length / META) * 100).toFixed(1);
-    document.getElementById("metaText").textContent = `${pct}% — Meta: ${META}`;
-
-    // Ritmo
-    const minEfectivos = tiempoEfectivoTranscurrido(hoy);
-    const ritmo = minEfectivos > 0
-      ? (hoy.length / (minEfectivos / 60)).toFixed(1)
-      : "—";
-    document.getElementById("statRitmo").textContent = ritmo === "—" ? "—" : ritmo;
-
-    // Gráfico
-    renderGrafico(hoy);
-
-    // Historial
-    const todosHoy = hoy.slice().reverse();
+    document.getElementById("metaText").textContent = `${((hoy.length/META)*100).toFixed(1)}% — Meta: ${META}`;
+    const mE = tiempoEfectivoTranscurrido(hoy);
+    document.getElementById("statRitmo").textContent = mE>0?(hoy.length/(mE/60)).toFixed(1):"—";
+    renderChartHoy(hoy);
     const lista = document.getElementById("historyList");
-
-    if (todosHoy.length === 0) {
-      lista.innerHTML = '<div class="empty-state">Sin registros hoy</div>';
-    } else {
-      lista.innerHTML = todosHoy.map(r => `
-        <div class="history-item">
-          <div class="history-info">
-            <span class="history-time">${formatearFechaHora(r.timestamp)}</span>
-            <span class="history-op">${r.operador}</span>
-          </div>
-        </div>`).join("");
-    }
+    const items = hoy.slice().reverse();
+    if (items.length===0) { lista.innerHTML='<div class="empty-state">Sin registros hoy</div>'; }
+    else { lista.innerHTML=items.map(r=>`<div class="history-item"><div class="history-info"><span class="history-time">${fmtFechaHora(r.timestamp)}</span><span class="history-op">${r.operador}</span></div></div>`).join(""); }
   }
 
-  function renderGrafico(hoy) {
-    const ahora      = new Date();
-    const horaActual = ahora.getHours();
-    const wrap       = document.getElementById("chartWrap");
+  function renderChartHoy(hoy) {
+    const ahora=new Date(), hA=ahora.getHours(), w=document.getElementById("chartWrap");
+    let hI=9;
+    if(hoy.length>0){const h=new Date(hoy[0].timestamp).getHours();if(h<hI)hI=h;}
+    const hrs=[];for(let h=hI;h<=hA;h++)hrs.push(h);
+    if(hrs.length===0){w.innerHTML='<div class="chart-baseline"></div><div class="empty-state" style="width:100%;padding-bottom:20px;">Turno no iniciado</div>';return;}
+    const c={};hrs.forEach(h=>c[h]=0);hoy.forEach(r=>{const h=new Date(r.timestamp).getHours();if(c[h]!==undefined)c[h]++;});
+    const mx=Math.max(...Object.values(c),1);
+    w.innerHTML='<div class="chart-baseline"></div>'+hrs.map(h=>{
+      const v=c[h],p=(v/mx)*100;
+      return`<div class="bar-col"><div class="bar-count">${v}</div><div class="bar ${h===hA?'current':''}" style="height:${Math.max(p,2)}%"></div><div class="bar-label">${String(h).padStart(2,'0')}h</div></div>`;
+    }).join("");
+  }
 
-    // Rango de horas: desde la hora de inicio hasta la actual
-    // Inicio mínimo: hora de la primera palada o 9, lo que sea menor
-    let horaInicio = 9;
-    if (hoy.length > 0) {
-      const hPrimera = new Date(hoy[0].timestamp).getHours();
-      if (hPrimera < horaInicio) horaInicio = hPrimera;
+  // ═══════════════════════════════════════════════════
+  //  TAB HISTÓRICO
+  // ═══════════════════════════════════════════════════
+  function renderHistorico() {
+    renderHistSummary();
+    renderHistChart();
+  }
+
+  function renderHistSummary() {
+    const ahora = new Date();
+
+    // SEMANA ACTUAL (lun-vie)
+    const lunes = getLunes(ahora);
+    let semTotal = 0, semDiasConData = 0;
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(lunes); d.setDate(d.getDate() + i);
+      if (d > ahora) break;
+      const cnt = porDia[fechaKey(d)] || 0;
+      semTotal += cnt;
+      if (cnt > 0 || d.toDateString() !== ahora.toDateString()) semDiasConData++;
+    }
+    const semProm = semDiasConData > 0 ? Math.round(semTotal / semDiasConData) : 0;
+    const diasTranscurridosSem = Math.min(5, Math.max(1, (() => {
+      let c = 0;
+      for (let i = 0; i < 5; i++) { const d = new Date(lunes); d.setDate(d.getDate()+i); if (d <= ahora) c++; }
+      return c;
+    })()));
+    const metaSemParcial = diasTranscurridosSem * META;
+
+    document.getElementById("hSemTotal").textContent = formatNum(semTotal);
+    document.getElementById("hSemTotalMeta").textContent = `${Math.round(semTotal/metaSemParcial*100)}% - ${formatNum(semTotal)}/${formatNum(metaSemParcial)} · ${diasTranscurridosSem}/5 días`;
+    document.getElementById("hSemProm").textContent = semProm;
+    document.getElementById("hSemPromMeta").textContent = `Meta: ${META}/día`;
+
+    // MES ACTUAL
+    const mesNombre = MESES_ES[ahora.getMonth()];
+    document.getElementById("hMesTitulo").textContent = mesNombre;
+    const dlm = diasLaboralesMes(ahora.getFullYear(), ahora.getMonth());
+    let mesTotal = 0, mesDiasConData = 0, diasLabTranscurridos = 0;
+    for (let d = 1; d <= ahora.getDate(); d++) {
+      const fecha = new Date(ahora.getFullYear(), ahora.getMonth(), d);
+      if (!esLaboral(fecha)) continue;
+      diasLabTranscurridos++;
+      const cnt = porDia[fechaKey(fecha)] || 0;
+      mesTotal += cnt;
+      if (cnt > 0 || fecha.toDateString() !== ahora.toDateString()) mesDiasConData++;
+    }
+    const mesProm = mesDiasConData > 0 ? Math.round(mesTotal / mesDiasConData) : 0;
+    const metaMesParcial = diasLabTranscurridos * META;
+
+    document.getElementById("hMesTotal").textContent = formatNum(mesTotal);
+    document.getElementById("hMesTotalMeta").textContent = `${Math.round(mesTotal/metaMesParcial*100)}% - ${formatNum(mesTotal)}/${formatNum(metaMesParcial)} · ${diasLabTranscurridos}/${dlm} días`;
+    document.getElementById("hMesProm").textContent = mesProm;
+    document.getElementById("hMesPromMeta").textContent = `Meta: ${META}/día`;
+  }
+
+  function renderHistChart() {
+    const w = document.getElementById("histChartWrap");
+    let bars = [], meta = META, metaLabel = "125";
+
+    if (pillActual === "semana") {
+      bars = getBarsSemanaActual();
+      meta = META; metaLabel = "125";
+    } else if (pillActual === "14dias") {
+      bars = getBars14Dias();
+      meta = META; metaLabel = "125";
+    } else if (pillActual === "semanal") {
+      bars = getBarsSemanal();
+      meta = META_SEM; metaLabel = "625";
+    } else if (pillActual === "mensual") {
+      bars = getBarsMensual();
+      meta = null;
     }
 
-    const horasVisibles = [];
-    for (let h = horaInicio; h <= horaActual; h++) horasVisibles.push(h);
-
-    if (horasVisibles.length === 0) {
-      wrap.innerHTML = '<div class="chart-baseline"></div><div class="empty-state" style="width:100%;padding-bottom:20px;">Turno no iniciado</div>';
+    if (bars.length === 0) {
+      w.innerHTML = '<div class="chart-baseline"></div><div class="empty-state" style="width:100%;">Sin datos</div>';
       return;
     }
 
-    // Contar paladas por hora
-    const conteo = {};
-    horasVisibles.forEach(h => conteo[h] = 0);
-    hoy.forEach(r => {
-      const h = new Date(r.timestamp).getHours();
-      if (conteo[h] !== undefined) conteo[h]++;
-    });
+    const allMetas = meta ? [meta] : bars.map(b => b.meta || 0);
+    const maxVal = Math.max(...bars.map(b => b.value), ...allMetas, 1);
+    const scale = maxVal * 1.15;
 
-    const maxVal = Math.max(...Object.values(conteo), 1);
+    // Both bars and meta line use the same scale function:
+    // percentage = (value / scale) * 100, applied to the space above the 20px baseline
+    function pct(v) { return (v / scale) * 100; }
 
-    wrap.innerHTML = '<div class="chart-baseline"></div>' +
-      horasVisibles.map(h => {
-        const val       = conteo[h];
-        const pct       = (val / maxVal) * 100;
-        const esCurrent = h === horaActual;
-        return `
-          <div class="bar-col">
-            <div class="bar-count">${val}</div>
-            <div class="bar ${esCurrent ? 'current' : ''}" style="height:${Math.max(pct, 2)}%"></div>
-            <div class="bar-label">${String(h).padStart(2,'0')}h</div>
-          </div>`;
-      }).join("");
+    let html = '<div class="chart-baseline"></div>';
+
+    if (meta) {
+      html += `<div class="meta-line" style="bottom:calc(20px + ${pct(meta)} * (100% - 20px) / 100)"><span class="meta-line-label">${metaLabel}</span></div>`;
+    }
+
+    html += bars.map(b => {
+      const barMeta = b.meta || meta;
+      const cls = b.current ? "current" : (b.value >= barMeta ? "over" : "under");
+      const h = pct(b.value);
+      return `<div class="bar-col"><div class="bar-count">${b.value > 0 ? b.value : ''}</div><div class="bar ${cls}" style="height:${Math.max(h, 1)}%"></div><div class="bar-label">${b.label}</div></div>`;
+    }).join("");
+
+    w.innerHTML = html;
+
+    // Fix meta line position after render using pixel math
+    if (meta) {
+      requestAnimationFrame(() => {
+        const wrapH = w.clientHeight;
+        if (wrapH <= 20) return;
+        const usable = wrapH - 20;
+        const lineBottom = 20 + (meta / scale) * usable;
+        const line = w.querySelector(".meta-line");
+        if (line) line.style.bottom = lineBottom + "px";
+        // Also fix bar heights to match (override CSS %)
+        const barEls = w.querySelectorAll(".bar");
+        bars.forEach((b, i) => {
+          if (barEls[i]) barEls[i].style.height = Math.max((b.value / scale) * usable, 2) + "px";
+        });
+      });
+    }
   }
 
+  // ── DATA BUILDERS ────────────────────────────────
+
+  function getBarsSemanaActual() {
+    const ahora = new Date(), lunes = getLunes(ahora);
+    const bars = [];
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(lunes); d.setDate(d.getDate() + i);
+      if (d > ahora) break;
+      bars.push({
+        label: DIAS_ES_CORTO[d.getDay()],
+        value: porDia[fechaKey(d)] || 0,
+        current: d.toDateString() === ahora.toDateString(),
+        meta: META
+      });
+    }
+    return bars;
+  }
+
+  function getBars14Dias() {
+    const ahora = new Date(), bars = [];
+    let count = 0;
+    for (let i = 0; count < 14 && i < 30; i++) {
+      const d = new Date(ahora); d.setDate(d.getDate() - i);
+      if (!esLaboral(d)) continue;
+      bars.push({
+        label: `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`,
+        value: porDia[fechaKey(d)] || 0,
+        current: i === 0,
+        meta: META
+      });
+      count++;
+    }
+    bars.reverse();
+    return bars;
+  }
+
+  function getBarsSemanal() {
+    const ahora = new Date(), bars = [];
+    const lunesActual = getLunes(ahora);
+
+    for (let w = 0; w < 8; w++) {
+      const lunSem = new Date(lunesActual); lunSem.setDate(lunSem.getDate() - w * 7);
+      let total = 0, tieneData = false;
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(lunSem); d.setDate(d.getDate() + i);
+        const cnt = porDia[fechaKey(d)] || 0;
+        total += cnt;
+        if (cnt > 0) tieneData = true;
+      }
+      if (!tieneData && w > 0) continue;
+      bars.push({
+        label: `S${String(lunSem.getDate()).padStart(2,"0")}/${String(lunSem.getMonth()+1).padStart(2,"0")}`,
+        value: total,
+        current: w === 0,
+        meta: META_SEM
+      });
+    }
+    bars.reverse();
+    return bars;
+  }
+
+  function getBarsMensual() {
+    const ahora = new Date(), bars = [];
+    for (let m = 0; m <= ahora.getMonth(); m++) {
+      let total = 0, tieneData = false;
+      const ultimoDia = (m === ahora.getMonth()) ? ahora.getDate() : new Date(ahora.getFullYear(), m+1, 0).getDate();
+      for (let d = 1; d <= ultimoDia; d++) {
+        const fecha = new Date(ahora.getFullYear(), m, d);
+        const cnt = porDia[fechaKey(fecha)] || 0;
+        total += cnt;
+        if (cnt > 0) tieneData = true;
+      }
+      if (!tieneData) continue;
+      const dlm = diasLaboralesMes(ahora.getFullYear(), m);
+      bars.push({
+        label: MESES_ES[m].slice(0, 3),
+        value: total,
+        current: m === ahora.getMonth(),
+        meta: dlm * META
+      });
+    }
+    return bars;
+  }
+
+  // ── UTILS ────────────────────────────────────────
   function setStatus(msg) {
-    const bar = document.getElementById("statusBar");
-    bar.textContent = msg;
-    bar.className = "status-bar" + (msg ? " error" : "");
+    const b = document.getElementById("statusBar");
+    b.textContent = msg; b.className = "status-bar" + (msg ? " error" : "");
   }
 
   function refrescar() {
     const btn = document.getElementById("btnRefresh");
     btn.classList.add("spinning");
-    cargarDatos().then(() => {
-      btn.classList.remove("spinning");
-    });
+    cargarDatos().then(() => btn.classList.remove("spinning"));
   }
 </script>
 
