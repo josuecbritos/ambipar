@@ -790,7 +790,9 @@ function renderResumenMes() {
 function valorDia(fecha, dominio) {
   const k = fKey(fecha);
   if (dominio === "paladas") return paladasPorDia[k] || 0;
-  return fardosPorDia[k] ? { ...fardosPorDia[k] } : { resimple: 0, otros: 0, rechazo: 0 };
+  return fardosPorDia[k]
+    ? { ...fardosPorDia[k] }
+    : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0 };
 }
 function totalValor(v, dominio) {
   return dominio === "paladas" ? v : (v.resimple + v.otros + v.rechazo);
@@ -830,7 +832,7 @@ function buildBars(dominio) {
         const d = new Date(lun); d.setDate(d.getDate() + i);
         const v = valorDia(d, dominio);
         if (dominio === "paladas") { acum += v; if (v > 0) tieneData = true; }
-        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
+        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple = (acum.nResimple||0) + (v.nResimple||0); acum.nOtros = (acum.nOtros||0) + (v.nOtros||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
       }
       if (!tieneData && w > 0) continue;
       bars.push({ label: `S${pad(lun.getDate())}/${pad(lun.getMonth()+1)}`, value: acum, meta: metaDia * 5 });
@@ -841,13 +843,13 @@ function buildBars(dominio) {
     const bars = [];
     for (let m = 0; m <= ahora.getMonth(); m++) {
       const ulD = m === ahora.getMonth() ? ahora.getDate() : new Date(ahora.getFullYear(), m+1, 0).getDate();
-      let acum = dominio === "paladas" ? 0 : { resimple: 0, otros: 0, rechazo: 0 };
+      let acum = dominio === "paladas" ? 0 : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0 };
       let tieneData = false;
       for (let d = 1; d <= ulD; d++) {
         const fecha = new Date(ahora.getFullYear(), m, d);
         const v = valorDia(fecha, dominio);
         if (dominio === "paladas") { acum += v; if (v > 0) tieneData = true; }
-        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
+        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple += (v.nResimple||0); acum.nOtros += (v.nOtros||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
       }
       if (!tieneData) continue;
       const dlm = diasLaboralesMes(ahora.getFullYear(), m);
@@ -895,7 +897,11 @@ function renderHistChart(dominio) {
       const tot = totalValor(b.value, dominio);
       const barH = Math.max((tot/scale)*100, tot>0?3:0);
       const seg = (kg) => tot > 0 ? (kg/tot)*100 : 0;
-      return `<div class="stacked-col">
+      const nRes = b.value.nResimple || 0, nOts = b.value.nOtros || 0;
+      return `<div class="stacked-col"
+          data-hora="${b.label}" data-res="${b.value.resimple}" data-otros="${b.value.otros}" data-rec="${b.value.rechazo}"
+          data-nres="${nRes}" data-notros="${nOts}" data-nrec="0"
+          ontouchstart="showTooltip(event,this)" onclick="showTooltip(event,this)">
         <div class="stacked-total">${tot > 0 ? formatTon(tot) : ''}</div>
         <div class="stacked-bar" style="height:${barH}%">
           <div class="stacked-seg resimple" style="height:${seg(b.value.resimple)}%"></div>
@@ -947,8 +953,12 @@ function showTooltip(e, el) {
       <strong style="margin-left:auto;padding-left:8px;">${fT(kg)} · ${fF(n)}</strong>
     </div>`;
 
+  // Si h es un número es hora del día (hoy), si no es label histórico
+  const esHora = !isNaN(Number(h));
+  const titulo = esHora ? `${pad(Number(h))}:00 — ${pad(Number(h)+1)}:00` : h;
+
   tt.innerHTML = `
-    <div class="chart-tooltip-title">${pad(h)}:00 — ${pad(Number(h)+1)}:00</div>
+    <div class="chart-tooltip-title">${titulo}</div>
     ${fila("resimple", "Resimple", res, nRes)}
     ${fila("otros",    "Otros",    ots, nOts)}
     ${fila("rechazo",  "Rechazo",  rec, nRec)}
