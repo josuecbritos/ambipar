@@ -477,10 +477,11 @@ async function cargarDatos() {
     fardos.forEach(r => {
       const k   = fKey(new Date(r.timestamp));
       const cat = categoriaFardo(r);
-      if (!fardosPorDia[k]) fardosPorDia[k] = { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0 };
+      if (!fardosPorDia[k]) fardosPorDia[k] = { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
       fardosPorDia[k][cat] += Number(r.peso_kg) || 0;
       if (cat === "resimple") fardosPorDia[k].nResimple++;
       else if (cat === "otros") fardosPorDia[k].nOtros++;
+      else if (cat === "rechazo") fardosPorDia[k].nRechazo++;
     });
 
     actualizarHoy();
@@ -601,7 +602,7 @@ function actualizarHoy() {
 
   // [1][4] KPI Ton Resimple — color según meta
   const hoyKey = fKey(new Date());
-  const dHoy   = fardosPorDia[hoyKey] || { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0 };
+  const dHoy   = fardosPorDia[hoyKey] || { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
   const kgRes  = dHoy.resimple;
   const resCumple = kgRes >= metaKgResimple;
 
@@ -792,7 +793,7 @@ function valorDia(fecha, dominio) {
   if (dominio === "paladas") return paladasPorDia[k] || 0;
   return fardosPorDia[k]
     ? { ...fardosPorDia[k] }
-    : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0 };
+    : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
 }
 function totalValor(v, dominio) {
   return dominio === "paladas" ? v : (v.resimple + v.otros + v.rechazo);
@@ -832,7 +833,7 @@ function buildBars(dominio) {
         const d = new Date(lun); d.setDate(d.getDate() + i);
         const v = valorDia(d, dominio);
         if (dominio === "paladas") { acum += v; if (v > 0) tieneData = true; }
-        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple = (acum.nResimple||0) + (v.nResimple||0); acum.nOtros = (acum.nOtros||0) + (v.nOtros||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
+        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple = (acum.nResimple||0) + (v.nResimple||0); acum.nOtros = (acum.nOtros||0) + (v.nOtros||0); acum.nRechazo = (acum.nRechazo||0) + (v.nRechazo||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
       }
       if (!tieneData && w > 0) continue;
       bars.push({ label: `S${pad(lun.getDate())}/${pad(lun.getMonth()+1)}`, value: acum, meta: metaDia * 5 });
@@ -843,13 +844,13 @@ function buildBars(dominio) {
     const bars = [];
     for (let m = 0; m <= ahora.getMonth(); m++) {
       const ulD = m === ahora.getMonth() ? ahora.getDate() : new Date(ahora.getFullYear(), m+1, 0).getDate();
-      let acum = dominio === "paladas" ? 0 : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0 };
+      let acum = dominio === "paladas" ? 0 : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
       let tieneData = false;
       for (let d = 1; d <= ulD; d++) {
         const fecha = new Date(ahora.getFullYear(), m, d);
         const v = valorDia(fecha, dominio);
         if (dominio === "paladas") { acum += v; if (v > 0) tieneData = true; }
-        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple += (v.nResimple||0); acum.nOtros += (v.nOtros||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
+        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple += (v.nResimple||0); acum.nOtros += (v.nOtros||0); acum.nRechazo += (v.nRechazo||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
       }
       if (!tieneData) continue;
       const dlm = diasLaboralesMes(ahora.getFullYear(), m);
@@ -897,10 +898,10 @@ function renderHistChart(dominio) {
       const tot = totalValor(b.value, dominio);
       const barH = Math.max((tot/scale)*100, tot>0?3:0);
       const seg = (kg) => tot > 0 ? (kg/tot)*100 : 0;
-      const nRes = b.value.nResimple || 0, nOts = b.value.nOtros || 0;
+      const nRes = b.value.nResimple || 0, nOts = b.value.nOtros || 0, nRec = b.value.nRechazo || 0;
       return `<div class="stacked-col"
           data-hora="${b.label}" data-res="${b.value.resimple}" data-otros="${b.value.otros}" data-rec="${b.value.rechazo}"
-          data-nres="${nRes}" data-notros="${nOts}" data-nrec="0"
+          data-nres="${nRes}" data-notros="${nOts}" data-nrec="${nRec}"
           ontouchstart="showTooltip(event,this)" onclick="showTooltip(event,this)">
         <div class="stacked-total">${tot > 0 ? formatTon(tot) : ''}</div>
         <div class="stacked-bar" style="height:${barH}%">
