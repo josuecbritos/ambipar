@@ -197,9 +197,19 @@
     <div class="select-wrapper">
       <select id="causa" onchange="onCausaChange()">
         <option value="">— Seleccione la causa —</option>
-        <option value="Atoro 2D">Atoro 2D</option>
-        <option value="Atoro 3D">Atoro 3D</option>
-        <option value="Atoro Separador Balístico">Atoro Separador Balístico</option>
+        <option value="Atoro 2D cinta 124">Atoro 2D cinta 124</option>
+        <option value="Atoro 2D cinta 126">Atoro 2D cinta 126</option>
+        <option value="Atoro 2D cinta 128">Atoro 2D cinta 128</option>
+        <option value="Atoro 2D cinta 172">Atoro 2D cinta 172</option>
+        <option value="Atoro 2D otros">Atoro 2D otros</option>
+        <option value="Atoro 3D cinta 144">Atoro 3D cinta 144</option>
+        <option value="Atoro 3D cinta 146">Atoro 3D cinta 146</option>
+        <option value="Atoro 3D cinta 154">Atoro 3D cinta 154</option>
+        <option value="Atoro 3D Pellenc">Atoro 3D Pellenc</option>
+        <option value="Atoro 3D otros">Atoro 3D otros</option>
+        <option value="Parada de Emergencia">Parada de Emergencia</option>
+        <option value="Problemas con Trituradora">Problemas con Trituradora</option>
+        <option value="Recolección de material">Recolección de material</option>
         <option value="Falla mecánica línea">Falla mecánica línea</option>
         <option value="Falta Faresín">Falta Faresín</option>
         <option value="Otros">Otros</option>
@@ -229,9 +239,19 @@
     <div class="modal-select">
       <select id="modalCausa" onchange="onModalCausaChange()">
         <option value="">— Seleccione la causa —</option>
-        <option value="Atoro 2D">Atoro 2D</option>
-        <option value="Atoro 3D">Atoro 3D</option>
-        <option value="Atoro Separador Balístico">Atoro Separador Balístico</option>
+        <option value="Atoro 2D cinta 124">Atoro 2D cinta 124</option>
+        <option value="Atoro 2D cinta 126">Atoro 2D cinta 126</option>
+        <option value="Atoro 2D cinta 128">Atoro 2D cinta 128</option>
+        <option value="Atoro 2D cinta 172">Atoro 2D cinta 172</option>
+        <option value="Atoro 2D otros">Atoro 2D otros</option>
+        <option value="Atoro 3D cinta 144">Atoro 3D cinta 144</option>
+        <option value="Atoro 3D cinta 146">Atoro 3D cinta 146</option>
+        <option value="Atoro 3D cinta 154">Atoro 3D cinta 154</option>
+        <option value="Atoro 3D Pellenc">Atoro 3D Pellenc</option>
+        <option value="Atoro 3D otros">Atoro 3D otros</option>
+        <option value="Parada de Emergencia">Parada de Emergencia</option>
+        <option value="Problemas con Trituradora">Problemas con Trituradora</option>
+        <option value="Recolección de material">Recolección de material</option>
         <option value="Falla mecánica línea">Falla mecánica línea</option>
         <option value="Falta Faresín">Falta Faresín</option>
         <option value="Otros">Otros</option>
@@ -244,7 +264,8 @@
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycbzt1cgYMbnxYipyVXG0qrVL6TpacbdM5DxAJSNG8kPBjkX9mlQYFyZ8MFabQDlrzsM/exec";
   const TOKEN = "paladas2026";
-  const HORARIOS = { inicio_am: {h:9,m:30}, almuerzo_inicio: {h:12,m:30}, inicio_pm: {h:13,m:30}, fin_turno: {h:18,m:0} };
+  const _HORARIOS_BASE = { inicio_am: {h:9,m:30}, almuerzo_inicio: {h:12,m:30}, inicio_pm: {h:13,m:30}, fin_turno: {h:18,m:0} };
+  const HORARIOS = new Proxy(_HORARIOS_BASE, { get(t,p) { if (p === "fin_turno") { const d = new Date().getDay(); return (d === 4 || d === 5) ? {h:17,m:0} : {h:18,m:0}; } return t[p]; } });
   const MARGEN = 5;
   const HITO_LABELS = { inicio_am: "Inicio turno", almuerzo: "Parada almuerzo", atraso_pm: "Atraso post almuerzo", fin_turno: "Fin turno", detencion: "Detención" };
   const HITO_BTN_IDS = { inicio_am: "btnInicioAM", almuerzo_inicio: "btnAlmuerzo", inicio_pm: "btnInicioPM", fin_turno: "btnFin" };
