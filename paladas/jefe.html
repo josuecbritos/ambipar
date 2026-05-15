@@ -964,7 +964,7 @@ function showTooltip(e, el) {
     ${fila("otros",    "Otros",    ots, nOts)}
     ${fila("rechazo",  "Rechazo",  rec, nRec)}
     ${total > 0 ? `<div style="border-top:1px solid rgba(255,255,255,0.15);margin-top:4px;padding-top:4px;font-size:10px;display:flex;justify-content:space-between;">
-      <span>Total</span><strong>${fT(total)}</strong></div>` : ''}
+      <span>Total</span><strong>${fT(total)} · ${fF(nRes + nOts + nRec)}</strong></div>` : ''}
   `;
 
   // Posicionar cerca del toque pero dentro de la pantalla
