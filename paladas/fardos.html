@@ -323,6 +323,36 @@
   /* DETALLE TABLE */
   .detalle-wrap { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
 
+  .detalle-date-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px; flex-shrink: 0;
+  }
+
+  .detalle-date-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500);
+  }
+
+  .detalle-date-input {
+    flex: 1; background: var(--gray-50); border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--gray-800); outline: none; transition: border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .detalle-date-input:focus { border-color: var(--green); }
+
+  .detalle-date-today {
+    background: var(--green-light); border: 1.5px solid var(--green-mid);
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--green); cursor: pointer; white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .detalle-date-today:active { background: var(--green-mid); }
+
   .detalle-table {
     width: 100%; border-collapse: collapse; font-size: 11px;
   }
@@ -342,6 +372,10 @@
 
   .detalle-table td {
     padding: 6px; text-align: center; border-bottom: 1px solid var(--gray-100);
+  }
+
+  .detalle-table td:last-child {
+    background: var(--gray-50); border-left: 2px solid var(--green-mid);
   }
 
   .detalle-table td:first-child {
@@ -435,7 +469,7 @@
   <!-- TABS -->
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('registro')">Registro</button>
-    <button class="tab-btn" onclick="switchTab('detalle')">Detalle hoy</button>
+    <button class="tab-btn" onclick="switchTab('detalle')">Detalle</button>
   </div>
 
   <!-- ═══ TAB REGISTRO ═══ -->
@@ -528,8 +562,13 @@
 
   </div> <!-- /tabRegistro -->
 
-  <!-- ═══ TAB DETALLE HOY ═══ -->
+  <!-- ═══ TAB DETALLE ═══ -->
   <div class="tab-content" id="tabDetalle">
+    <div class="detalle-date-row">
+      <label class="detalle-date-label" for="detalleFecha">Fecha</label>
+      <input type="date" class="detalle-date-input" id="detalleFecha" onchange="renderDetalle()">
+      <button class="detalle-date-today" onclick="irAHoyDetalle()">Hoy</button>
+    </div>
     <div class="detalle-wrap" id="detalleWrap">
       <div class="detalle-empty">Cargando datos...</div>
     </div>
@@ -589,6 +628,19 @@
     const h = new Date();
     document.getElementById("topbarDate").textContent =
       `${String(h.getDate()).padStart(2,"0")}/${String(h.getMonth()+1).padStart(2,"0")}/${h.getFullYear()}`;
+
+    // Inicializar selector de fecha en Detalle
+    const hoyISO = h.getFullYear() + "-" + String(h.getMonth()+1).padStart(2,"0") + "-" + String(h.getDate()).padStart(2,"0");
+    const inp = document.getElementById("detalleFecha");
+    inp.value = hoyISO;
+    inp.max = hoyISO;
+  }
+
+  function irAHoyDetalle() {
+    const h = new Date();
+    const hoyISO = h.getFullYear() + "-" + String(h.getMonth()+1).padStart(2,"0") + "-" + String(h.getDate()).padStart(2,"0");
+    document.getElementById("detalleFecha").value = hoyISO;
+    renderDetalle();
   }
 
   // ── API ───────────────────────────────────────────
@@ -825,20 +877,33 @@
     bar.className = "status-bar" + (tipo ? ` ${tipo}` : "");
   }
 
-  // ── DETALLE HOY ───────────────────────────────────
+  // ── DETALLE (por fecha seleccionada) ─────────────
   function renderDetalle() {
     const wrap = document.getElementById("detalleWrap");
-    const hoy = registros.filter(r => esHoy(r.timestamp));
-
-    if (hoy.length === 0) {
-      wrap.innerHTML = '<div class="detalle-empty">Sin registros hoy</div>';
+    const fechaInput = document.getElementById("detalleFecha").value;
+    if (!fechaInput) {
+      wrap.innerHTML = '<div class="detalle-empty">Seleccione una fecha</div>';
       return;
     }
 
-    // Get unique materials and clients that have data today
+    // Filtrar registros que coincidan con la fecha seleccionada
+    const filtrados = registros.filter(r => {
+      const d = new Date(r.timestamp);
+      const rFecha = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+      return rFecha === fechaInput;
+    });
+
+    if (filtrados.length === 0) {
+      const partes = fechaInput.split("-");
+      const fechaDisplay = partes[2] + "/" + partes[1] + "/" + partes[0];
+      wrap.innerHTML = `<div class="detalle-empty">Sin registros para ${fechaDisplay}</div>`;
+      return;
+    }
+
+    // Get unique materials and clients for selected date
     const matsSet = new Set();
     const clisSet = new Set();
-    hoy.forEach(r => { matsSet.add(r.material); clisSet.add(r.cliente); });
+    filtrados.forEach(r => { matsSet.add(r.material); clisSet.add(r.cliente); });
     const mats = [...matsSet].sort();
     const clis = [...clisSet].sort();
 
@@ -848,7 +913,7 @@
       data[m] = {};
       clis.forEach(c => { data[m][c] = { fardos: 0, kg: 0 }; });
     });
-    hoy.forEach(r => {
+    filtrados.forEach(r => {
       data[r.material][r.cliente].fardos++;
       data[r.material][r.cliente].kg += Number(r.peso_kg || 0);
     });
