@@ -462,7 +462,7 @@ async function cargarDatos() {
     const data = await res.json();
     if (data.error) { setStatus("Error: " + data.error); return; }
 
-    paladas        = data.paladas || [];
+    paladas        = (data.paladas || []).filter(r => !r.tipo || r.tipo === "palada");
     fardos         = data.fardos  || [];
     metaPaladas    = Number(data.meta_paladas)     || 125;
     metaKgResimple = Number(data.meta_kg_resimple) || 16000;
