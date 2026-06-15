@@ -110,6 +110,12 @@
   .history-desc .h-causa { color: var(--red); margin-left: 4px; }
   .history-desc .h-ok { color: var(--green); margin-left: 4px; }
   .history-dur { font-family: 'Roboto Mono', monospace; font-size: 11px; font-weight: 500; color: var(--gray-500); margin-left: 8px; }
+  .btn-edit { background: none; border: none; color: var(--gray-500); padding: 4px; margin-left: 6px; cursor: pointer; display: flex; align-items: center; border-radius: 6px; flex-shrink: 0; }
+  .btn-edit:active { background: var(--gray-100); color: var(--green); }
+  .btn-manual { display: inline-flex; align-items: center; justify-content: center; gap: 4px; margin: 6px auto 0; padding: 4px 10px; background: none; border: none; color: var(--gray-500); font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+  .btn-manual:active { color: var(--green); }
+  .btn-manual.oculta { display: none; }
+  .btn-manual svg { width: 12px; height: 12px; }
   .empty-state { text-align: center; color: var(--gray-500); font-size: 11px; font-weight: 600; padding: 8px 0; }
 
   .status-wrap { flex: 0 0 auto; margin-top: 6px; text-align: center; }
@@ -209,6 +215,12 @@
       <div class="skeleton skeleton-item"></div>
       <div class="skeleton skeleton-item"></div>
     </div>
+    <div style="text-align:center;">
+      <button class="btn-manual oculta" id="btnManual" onclick="abrirModalManual()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        Agregar detención manual
+      </button>
+    </div>
   </div>
 
   <div class="status-wrap"><div class="status-bar" id="statusBar"></div></div>
@@ -225,6 +237,60 @@
         <option value="">— Seleccione la causa —</option>
       </select>
       <div class="select-arrow"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDICIÓN DETENCIÓN -->
+<div class="modal-overlay" id="modalEditOverlay">
+  <div class="modal-box">
+    <div class="modal-title">Editar detención</div>
+    <div class="modal-subtitle">Modifique los datos y guarde</div>
+    <div id="editCampoInicio" style="margin-top:14px; text-align:left;">
+      <div class="label">Hora inicio</div>
+      <input type="time" id="editInicio" style="width:100%; padding:10px; font-size:15px; border:1.5px solid var(--gray-300); border-radius:var(--radius-sm); font-family:'Roboto Mono',monospace;">
+    </div>
+    <div id="editCampoFin" style="margin-top:12px; text-align:left;">
+      <div class="label">Hora fin</div>
+      <input type="time" id="editFin" style="width:100%; padding:10px; font-size:15px; border:1.5px solid var(--gray-300); border-radius:var(--radius-sm); font-family:'Roboto Mono',monospace;">
+    </div>
+    <div id="editCampoCausa" class="modal-select" style="margin-top:12px;">
+      <select id="editCausa">
+        <option value="">— Seleccione la causa —</option>
+      </select>
+      <div class="select-arrow"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+    </div>
+    <div class="error-msg" id="editError" style="margin-top:10px;"></div>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn-hito" id="btnEditCancelar" onclick="cerrarModalEdit()" style="flex:1;">Cancelar</button>
+      <button class="btn-hito" id="btnEditGuardar" onclick="guardarEdicion()" style="flex:1; background:var(--green); color:var(--white);">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETENCIÓN MANUAL -->
+<div class="modal-overlay" id="modalManualOverlay">
+  <div class="modal-box">
+    <div class="modal-title">Agregar detención manual</div>
+    <div class="modal-subtitle">Registre una detención que no se capturó en el momento</div>
+    <div style="margin-top:14px; text-align:left;">
+      <div class="label">Hora inicio</div>
+      <input type="time" id="manualInicio" style="width:100%; padding:10px; font-size:15px; border:1.5px solid var(--gray-300); border-radius:var(--radius-sm); font-family:'Roboto Mono',monospace;">
+    </div>
+    <div style="margin-top:12px; text-align:left;">
+      <div class="label">Hora fin</div>
+      <input type="time" id="manualFin" style="width:100%; padding:10px; font-size:15px; border:1.5px solid var(--gray-300); border-radius:var(--radius-sm); font-family:'Roboto Mono',monospace;">
+    </div>
+    <div class="modal-select" style="margin-top:12px;">
+      <select id="manualCausa">
+        <option value="">— Seleccione la causa —</option>
+      </select>
+      <div class="select-arrow"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+    </div>
+    <div class="error-msg" id="manualError" style="margin-top:10px;"></div>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn-hito" onclick="cerrarModalManual()" style="flex:1;">Cancelar</button>
+      <button class="btn-hito" onclick="guardarDetencionManual()" style="flex:1; background:var(--green); color:var(--white);">Agregar</button>
     </div>
   </div>
 </div>
@@ -354,6 +420,14 @@
 
   function registrarHito(tipo) {
     const ahora = new Date();
+
+    // Guard anti-duplicado: hitos únicos del día (en memoria, sin leer la hoja).
+    // Si ya existe uno de hoy y no estamos completando el flujo del modal, ignorar.
+    const hitosUnicos = ["inicio_am", "fin_turno"];
+    if (hitosUnicos.includes(tipo) && !hitoPendienteTipo) {
+      const yaExiste = registrosHoy().some(r => r.tipo === tipo);
+      if (yaExiste) { console.log("[HITO] Ya existe " + tipo + " hoy, se ignora"); return; }
+    }
 
     // Almuerzo no requiere causa — se registra libre
     if (tipo === "almuerzo_inicio") {
@@ -497,6 +571,204 @@
     document.getElementById("modalOverlay").classList.remove("visible");
     document.getElementById("modalCausa").value = "";
   }
+
+  // ── EDICIÓN DE DETENCIONES ─────────────────────
+  let editandoId = null;
+
+  function horaInputDesdeISO(iso) {
+    // Devuelve "HH:MM" en hora local para el input type=time
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+
+  function isoDesdeHoraInput(valorHora, isoReferencia) {
+    // Combina la fecha del ISO de referencia con la hora HH:MM del input
+    const d = new Date(isoReferencia);
+    const [h, m] = valorHora.split(":").map(Number);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+  }
+
+  function abrirModalEdit(id) {
+    // Buscar el registro (puede ser la detención en curso o una cerrada)
+    let reg = registros.find(r => r.id === id);
+    const enCurso = detencionActual && detencionActual.id === id && estado === "detenida";
+    if (enCurso && !reg) reg = { id, inicio: detencionActual.inicio, fin: "", causa: detencionActual.causa || "", tipo: "detencion" };
+    if (!reg) return;
+
+    editandoId = id;
+    document.getElementById("editError").classList.remove("visible");
+    document.getElementById("editInicio").value = horaInputDesdeISO(reg.inicio);
+
+    // Llenar causas en el selector de edición (copiar del selector principal)
+    const editSel = document.getElementById("editCausa");
+    if (editSel.options.length <= 1) {
+      const origen = document.getElementById("causa");
+      editSel.innerHTML = origen.innerHTML;
+    }
+
+    if (enCurso) {
+      // En curso: solo inicio. Ocultar fin y causa.
+      document.getElementById("editCampoFin").style.display = "none";
+      document.getElementById("editCampoCausa").style.display = "none";
+    } else {
+      // Cerrada: inicio, fin y causa.
+      document.getElementById("editCampoFin").style.display = "";
+      document.getElementById("editCampoCausa").style.display = "";
+      document.getElementById("editFin").value = reg.fin ? horaInputDesdeISO(reg.fin) : "";
+      document.getElementById("editCausa").value = reg.causa || "";
+    }
+
+    document.getElementById("modalEditOverlay").classList.add("visible");
+  }
+
+  function cerrarModalEdit() {
+    document.getElementById("modalEditOverlay").classList.remove("visible");
+    editandoId = null;
+  }
+
+  function eliminarFinTurno(id) {
+    if (!confirm("¿Eliminar el fin de turno? La línea volverá a estado operativo.")) return;
+    registros = registros.filter(r => r.id !== id);
+    estado = "operando";
+    enviar({ accion: "eliminar", id });
+    actualizarUI();
+    setStatus("✓ Fin de turno eliminado", "ok"); setTimeout(() => setStatus("",""), 2000);
+  }
+
+  // ── DETENCIÓN MANUAL ───────────────────────────
+  function abrirModalManual() {
+    document.getElementById("manualError").classList.remove("visible");
+    document.getElementById("manualInicio").value = "";
+    document.getElementById("manualFin").value = "";
+    // Llenar causas (copiar del selector principal)
+    const manualSel = document.getElementById("manualCausa");
+    if (manualSel.options.length <= 1) {
+      manualSel.innerHTML = document.getElementById("causa").innerHTML;
+    }
+    manualSel.value = "";
+    document.getElementById("modalManualOverlay").classList.add("visible");
+  }
+
+  function cerrarModalManual() {
+    document.getElementById("modalManualOverlay").classList.remove("visible");
+  }
+
+  async function guardarDetencionManual() {
+    const err = document.getElementById("manualError");
+    err.classList.remove("visible");
+    const inicioVal = document.getElementById("manualInicio").value;
+    const finVal = document.getElementById("manualFin").value;
+    const causaVal = document.getElementById("manualCausa").value;
+
+    if (!inicioVal) { err.textContent = "Debe indicar la hora de inicio"; err.classList.add("visible"); return; }
+    if (!finVal) { err.textContent = "Debe indicar la hora de fin"; err.classList.add("visible"); return; }
+
+    // Construir ISO con la fecha de hoy
+    const hoyISO = new Date().toISOString();
+    const inicioISO = isoDesdeHoraInput(inicioVal, hoyISO);
+    const finISO = isoDesdeHoraInput(finVal, hoyISO);
+
+    // Validar con las mismas reglas (id null = registro nuevo)
+    const errMsg = validarEdicionDetencion(null, inicioISO, finISO);
+    if (errMsg) { err.textContent = errMsg; err.classList.add("visible"); return; }
+
+    const dur = Math.round((new Date(finISO) - new Date(inicioISO)) / 60000);
+    const id = crypto.randomUUID();
+    // Crear el registro como detención cerrada
+    registros.push({ id, inicio: inicioISO, fin: finISO, duracion_min: dur, causa: causaVal, tipo: "detencion" });
+    cerrarModalManual(); actualizarUI();
+    setStatus("Guardando…", "");
+    // Enviar inicio y esperar confirmación antes del fin (el fin actualiza por id)
+    await enviar({ accion: "inicio", id, inicio: inicioISO, causa: causaVal, tipo: "detencion" });
+    await enviar({ accion: "fin", id, fin: finISO, duracion_min: dur, causa: causaVal });
+    setStatus("✓ Detención agregada", "ok"); setTimeout(() => setStatus("",""), 2000);
+  }
+
+  function validarEdicionDetencion(id, inicioISO, finISO) {
+    // Retorna mensaje de error o null si todo OK
+    const ahora = new Date();
+    const ini = new Date(inicioISO);
+
+    // Mismo día: inicio y fin deben caer en el día de hoy (hora local)
+    const hoyStr = ahora.toDateString();
+    if (ini.toDateString() !== hoyStr) return "La hora de inicio debe ser de hoy";
+    if (ini > ahora) return "La hora de inicio no puede ser futura";
+
+    if (finISO) {
+      const fin = new Date(finISO);
+      if (fin.toDateString() !== hoyStr) return "La hora de fin debe ser de hoy";
+      if (fin > ahora) return "La hora de fin no puede ser futura";
+      if (fin <= ini) return "La hora de fin debe ser posterior al inicio";
+    }
+
+    // Solapamiento con otras detenciones cerradas del día
+    const finComparar = finISO ? new Date(finISO) : ahora;
+    const otras = registrosHoy().filter(r => r.tipo === "detencion" && r.id !== id && r.fin);
+    for (const o of otras) {
+      const oIni = new Date(o.inicio), oFin = new Date(o.fin);
+      // Hay solapamiento si los intervalos se cruzan
+      if (ini < oFin && finComparar > oIni) {
+        return `Se solapa con otra detención (${fH(o.inicio)}–${fH(o.fin)})`;
+      }
+    }
+
+    // Solapamiento con la detención en curso (si hay una activa y no es la que se edita)
+    if (detencionActual && estado === "detenida" && detencionActual.id !== id) {
+      const cIni = new Date(detencionActual.inicio);
+      // La detención en curso va desde su inicio hasta ahora
+      if (ini < ahora && finComparar > cIni) {
+        return `Se solapa con la detención en curso (desde ${fH(detencionActual.inicio)})`;
+      }
+    }
+    return null;
+  }
+
+  function guardarEdicion() {
+    const id = editandoId;
+    if (!id) return;
+    const err = document.getElementById("editError");
+    err.classList.remove("visible");
+
+    const enCurso = detencionActual && detencionActual.id === id && estado === "detenida";
+    let reg = registros.find(r => r.id === id);
+    const inicioRef = reg ? reg.inicio : detencionActual.inicio;
+
+    const nuevoInicioISO = isoDesdeHoraInput(document.getElementById("editInicio").value, inicioRef);
+
+    if (enCurso) {
+      // Solo actualizar inicio — validar inicio (sin fin)
+      const errMsg = validarEdicionDetencion(id, nuevoInicioISO, null);
+      if (errMsg) { err.textContent = errMsg; err.classList.add("visible"); return; }
+      if (reg) reg.inicio = nuevoInicioISO;
+      detencionActual.inicio = nuevoInicioISO;
+      enviar({ accion: "editar", id, inicio: nuevoInicioISO });
+      cerrarModalEdit(); actualizarUI();
+      setStatus("✓ Detención editada", "ok"); setTimeout(() => setStatus("",""), 2000);
+      return;
+    }
+
+    // Cerrada: inicio, fin, causa
+    const finVal = document.getElementById("editFin").value;
+    const causaVal = document.getElementById("editCausa").value;
+    if (!finVal) { err.textContent = "Debe indicar la hora de fin"; err.classList.add("visible"); return; }
+    const nuevoFinISO = isoDesdeHoraInput(finVal, reg.fin || reg.inicio);
+
+    // Validaciones de negocio
+    const errMsg = validarEdicionDetencion(id, nuevoInicioISO, nuevoFinISO);
+    if (errMsg) { err.textContent = errMsg; err.classList.add("visible"); return; }
+
+    const dur = Math.round((new Date(nuevoFinISO) - new Date(nuevoInicioISO)) / 60000);
+
+    reg.inicio = nuevoInicioISO;
+    reg.fin = nuevoFinISO;
+    reg.duracion_min = dur;
+    reg.causa = causaVal;
+    enviar({ accion: "editar", id, inicio: nuevoInicioISO, fin: nuevoFinISO, duracion_min: dur, causa: causaVal });
+    cerrarModalEdit(); actualizarUI();
+    setStatus("✓ Detención editada", "ok"); setTimeout(() => setStatus("",""), 2000);
+  }
+
   function mostrarCausa(label) {
     document.getElementById("seccionCausa").classList.remove("oculta");
     document.getElementById("causaLabel").textContent = label;
@@ -595,6 +867,10 @@
     }
     if (detencionActual?.causa && estado === "detenida") document.getElementById("causa").value = detencionActual.causa;
 
+    // Botón detención manual: visible si el turno está iniciado (cualquier estado salvo sin_turno)
+    const btnManual = document.getElementById("btnManual");
+    if (btnManual) btnManual.classList.toggle("oculta", estado === "sin_turno");
+
     // Historial
     renderHistorial(hoy, ld);
   }
@@ -645,12 +921,21 @@
 
       const dur = (esDetencion || esAlmuerzo) && r.duracion_min && r.duracion_min !== "" ? `${r.duracion_min} min` : "";
 
+      // Ícono de editar: solo detenciones cerradas (tipo detencion con fin)
+      const editable = tipo === "detencion" && r.fin;
+      const lapiz = editable ? `<button class="btn-edit" onclick="abrirModalEdit('${r.id}')" aria-label="Editar"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>` : "";
+
+      // Ícono de eliminar: solo fin_turno (para deshacer si se marcó por error)
+      const eliminable = tipo === "fin_turno";
+      const equis = eliminable ? `<button class="btn-edit" onclick="eliminarFinTurno('${r.id}')" aria-label="Eliminar fin de turno"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>` : "";
+
       return `<div class="${itemClass}">
         <div class="history-info">
           <span class="history-time">${horaStr}</span>
           <span class="history-desc">${descHtml}</span>
         </div>
         <span class="history-dur">${dur}</span>
+        ${lapiz}${equis}
       </div>`;
     });
 
@@ -661,6 +946,7 @@
           <span class="history-desc"><span class="h-tipo">Detención en curso</span>${detencionActual.causa ? '<span class="h-causa">· ' + detencionActual.causa + '</span>' : ''}</span>
         </div>
         <span class="history-dur" style="color:var(--red)">activa</span>
+        <button class="btn-edit" onclick="abrirModalEdit('${detencionActual.id}')" aria-label="Editar inicio"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
       </div>`);
     }
 
