@@ -351,11 +351,30 @@
   </div>
 </div>
 
+<div class="overlay" id="overlayAlmuerzo">
+  <div class="overlay-panel" onclick="event.stopPropagation()" style="max-width:360px;">
+    <div class="panel-header">
+      <div class="panel-title">Confirmar almuerzo</div>
+    </div>
+    <div style="font-size:15px; color:var(--gray-800); margin-bottom:18px; line-height:1.5;">
+      Pasaron más de <span id="almuerzoGapTexto">50</span> minutos desde tu última actividad.<br>¿Volviste de almuerzo?
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn-confirmar" id="btnAlmuerzoNo" style="flex:1; background:var(--gray-100); color:var(--gray-800);">No</button>
+      <button class="btn-confirmar" id="btnAlmuerzoSi" style="flex:1;">Sí, volví de almuerzo</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycbzlhn0m3Bqvq663PRbrjbvDE-64TCQDGE0Z4MtRXgi-tqZZLDouDdCatiZLS22tfn-P/exec";
   const TOKEN = "paladas2026";
-  const MINUTOS_TIMEOUT_PALADA = 20;
-  const MINUTOS_LIMITE_ALMUERZO = 60;
+  // Valores por defecto — se sobreescriben desde ConfigPaladas si existen las filas
+  let MINUTOS_TIMEOUT_PALADA = 20;
+  let MINUTOS_LIMITE_ALMUERZO = 60;
+  let ALMUERZO_GAP_MIN = 50;
+  let ALMUERZO_VENTANA_INICIO = "12:00";
+  let ALMUERZO_VENTANA_FIN = "14:00";
 
   const CAUSAS = [
     { grupo: "Apoyo a otra área", items: ["Apoyo a CDR", "Apoyo a Separación Envase Producto"] },
@@ -391,7 +410,7 @@
   window.addEventListener("DOMContentLoaded", () => {
     renderCausas();
     cargarTodo();
-    setInterval(ejecutarVerificaciones, 60000);
+    setInterval(() => { ejecutarVerificaciones(); enviarPendientesAPI(); }, 60000);
   });
 
   async function cargarTodo() {
@@ -402,6 +421,11 @@
         if (data.config.meta_paladas) metaPaladas = parseInt(data.config.meta_paladas) || 125;
         if (data.config.hora_inicio_turno) horaTeoricaInicio = parsearHoraInicio(data.config.hora_inicio_turno);
         if (data.config.horarios_fin) horariosFin = data.config.horarios_fin.split(",").map(h => { const p = parseHora(h.trim()); return p || h.trim(); });
+        if (data.config.timeout_inactividad_min) MINUTOS_TIMEOUT_PALADA = parseInt(data.config.timeout_inactividad_min) || MINUTOS_TIMEOUT_PALADA;
+        if (data.config.limite_almuerzo_min) MINUTOS_LIMITE_ALMUERZO = parseInt(data.config.limite_almuerzo_min) || MINUTOS_LIMITE_ALMUERZO;
+        if (data.config.almuerzo_gap_min) ALMUERZO_GAP_MIN = parseInt(data.config.almuerzo_gap_min) || ALMUERZO_GAP_MIN;
+        if (data.config.almuerzo_ventana_inicio) ALMUERZO_VENTANA_INICIO = String(data.config.almuerzo_ventana_inicio).trim();
+        if (data.config.almuerzo_ventana_fin) ALMUERZO_VENTANA_FIN = String(data.config.almuerzo_ventana_fin).trim();
         if (data.config.operadores) {
           const ops = data.config.operadores.split(",").map(o => o.trim()).filter(Boolean);
           const sel = document.getElementById("operador");
@@ -460,7 +484,7 @@
       return match;
     });
     if (yaExiste) { console.log("[AUTO] Ya existe, no se crea"); return null; }
-    const reg = { id: crypto.randomUUID(), timestamp: new Date(timestamp).toISOString(), operador: "Sistema", tipo: "actividad", causa: "Faresín detenido", motivo: "prioriza_otra" };
+    const reg = { id: crypto.randomUUID(), timestamp: new Date(timestamp).toISOString(), operador: "Sistema", tipo: "actividad", causa: "Faresín detenido", motivo: "detenido" };
     todosLosRegistros.push(reg);
     pendientesAPI.push(reg);
     console.log("[AUTO] Creado OK, total registros:", todosLosRegistros.length);
@@ -497,6 +521,8 @@
     if (!esPalada(ultimo)) return;
     if ((new Date() - new Date(ultimo.timestamp)) / 60000 < MINUTOS_TIMEOUT_PALADA) return;
     const limite = new Date(ultimo.timestamp); limite.setMinutes(limite.getMinutes() + MINUTOS_TIMEOUT_PALADA);
+    const hayPaladaPosterior = todosLosRegistros.some(r => esHoy(r.timestamp) && esPalada(r) && new Date(r.timestamp).getTime() > limite.getTime());
+    if (hayPaladaPosterior) { console.log("[TIMEOUT] Hay palada posterior al límite, no se crea auto"); return; }
     const reg = crearAutoFaresinDetenido(limite.toISOString());
     if (reg) actividadActiva = reg;
   }
@@ -507,12 +533,12 @@
     verificarAlmuerzoExtendido();
     verificarTimeoutInactividad();
     detectarEstadoActual();
-    enviarPendientesAPI();
     actualizarUI();
   }
 
   async function registrarPalada() {
     if (!operadorActual) return;
+    await manejarAlmuerzoSiCorresponde(operadorActual);
     const btn = document.getElementById("btnRegistrar"); btn.disabled = true;
     const reg = { id: crypto.randomUUID(), timestamp: new Date().toISOString(), operador: operadorActual, tipo: "palada" };
     todosLosRegistros.push(reg); actividadActiva = null; almuerzoActivo = null;
@@ -520,6 +546,10 @@
     ejecutarVerificaciones();
     animarBoton(); animarContador();
     try {
+      // Enviar auto-registros pendientes antes de la palada
+      for (const p of pendientesAPI.splice(0)) {
+        await fetch(`${API_URL}?token=${TOKEN}`, { method: "POST", redirect: "follow", body: JSON.stringify(p) });
+      }
       await fetch(`${API_URL}?token=${TOKEN}`, { method: "POST", redirect: "follow", body: JSON.stringify(reg) });
       setStatus("✓ Guardado", "ok"); setTimeout(() => setStatus("", ""), 2000);
     } catch (err) {
@@ -580,12 +610,16 @@
 
   async function confirmarActividad() {
     if (!motivoSeleccionado || !causaSeleccionada) return;
+    await manejarAlmuerzoSiCorresponde(operadorActual || "Sin operador");
     document.getElementById("btnConfirmar").disabled = true;
     const reg = { id: crypto.randomUUID(), timestamp: new Date().toISOString(), operador: operadorActual || "Sin operador", tipo: "actividad", causa: causaSeleccionada, motivo: motivoSeleccionado };
     todosLosRegistros.push(reg); actividadActiva = reg; almuerzoActivo = null;
     ejecutarVerificaciones();
     cerrarPanelActividades();
     try {
+      for (const p of pendientesAPI.splice(0)) {
+        await fetch(`${API_URL}?token=${TOKEN}`, { method: "POST", redirect: "follow", body: JSON.stringify(p) });
+      }
       await fetch(`${API_URL}?token=${TOKEN}`, { method: "POST", redirect: "follow", body: JSON.stringify(reg) });
       setStatus("✓ Actividad registrada", "ok"); setTimeout(() => setStatus("", ""), 2000);
     } catch (err) {
@@ -602,6 +636,78 @@
     });
   }
 
+  function verificarAlmuerzoAlRetomar() {
+    // Retorna el timestamp de la última acción del operador si corresponde preguntar, null si no
+    if (yaAlmorzoHoy()) return null;
+    const ahora = new Date();
+    const [hi, mi] = ALMUERZO_VENTANA_INICIO.split(":").map(Number);
+    const [hf, mf] = ALMUERZO_VENTANA_FIN.split(":").map(Number);
+    const inicioVentana = new Date(); inicioVentana.setHours(hi, mi, 0, 0);
+    const finVentana = new Date(); finVentana.setHours(hf, mf, 0, 0);
+    const accionesOperador = todosLosRegistros.filter(r => esHoy(r.timestamp) && r.operador !== "Sistema").sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    if (accionesOperador.length === 0) return null;
+    const ultimaAccion = accionesOperador[accionesOperador.length - 1];
+    const tsUltimaAccion = new Date(ultimaAccion.timestamp);
+    // La última acción debe estar dentro de la ventana de almuerzo
+    if (tsUltimaAccion < inicioVentana || tsUltimaAccion > finVentana) return null;
+    const gapMin = (ahora - tsUltimaAccion) / 60000;
+    if (gapMin < ALMUERZO_GAP_MIN) return null;
+    return ultimaAccion.timestamp;
+  }
+
+  function preguntarAlmuerzo() {
+    // Muestra el modal y devuelve una Promise que resuelve true (sí) o false (no)
+    return new Promise(resolve => {
+      const overlay = document.getElementById("overlayAlmuerzo");
+      document.getElementById("almuerzoGapTexto").textContent = ALMUERZO_GAP_MIN;
+      overlay.classList.add("visible");
+      const btnSi = document.getElementById("btnAlmuerzoSi");
+      const btnNo = document.getElementById("btnAlmuerzoNo");
+      function cerrar(respuesta) {
+        overlay.classList.remove("visible");
+        btnSi.onclick = null; btnNo.onclick = null;
+        resolve(respuesta);
+      }
+      btnSi.onclick = () => cerrar(true);
+      btnNo.onclick = () => cerrar(false);
+    });
+  }
+
+  function crearAlmuerzoConDetenido(tsInicio, operador) {
+    // Crea el almuerzo_inicio y, si excede el límite, el Faresín detenido posterior
+    const regs = [];
+    const regAlm = { id: crypto.randomUUID(), timestamp: tsInicio, operador, tipo: "almuerzo_inicio" };
+    regs.push(regAlm);
+    // Si el almuerzo excede el límite, marcar Faresín detenido desde (inicio + límite)
+    const finAlmuerzo = new Date(tsInicio); finAlmuerzo.setMinutes(finAlmuerzo.getMinutes() + MINUTOS_LIMITE_ALMUERZO);
+    if (new Date() > finAlmuerzo) {
+      const regDet = { id: crypto.randomUUID(), timestamp: finAlmuerzo.toISOString(), operador: "Sistema", tipo: "actividad", causa: "Faresín detenido", motivo: "detenido" };
+      regs.push(regDet);
+    }
+    return regs;
+  }
+
+  async function manejarAlmuerzoSiCorresponde(operador) {
+    // Si corresponde, pregunta por almuerzo y registra todo lo necesario. No envía a la API (lo hace el caller).
+    const tsGapAlmuerzo = verificarAlmuerzoAlRetomar();
+    if (tsGapAlmuerzo === null) return;
+    const confirmado = await preguntarAlmuerzo();
+    if (!confirmado) return;
+    // Eliminar auto-detenidos de Sistema que cayeron durante el almuerzo
+    const tsAlm = new Date(tsGapAlmuerzo).getTime();
+    const ahora = Date.now();
+    const autosEnAlmuerzo = todosLosRegistros.filter(r => r.operador === "Sistema" && esHoy(r.timestamp) && new Date(r.timestamp).getTime() >= tsAlm && new Date(r.timestamp).getTime() <= ahora);
+    autosEnAlmuerzo.forEach(auto => {
+      todosLosRegistros = todosLosRegistros.filter(r => r.id !== auto.id);
+      const enCola = pendientesAPI.findIndex(p => p.id === auto.id && !p._delete);
+      if (enCola >= 0) { pendientesAPI.splice(enCola, 1); }
+      else { pendientesAPI.push({ _delete: true, id: auto.id }); }
+    });
+    // Crear almuerzo + detenido si excede límite
+    const regs = crearAlmuerzoConDetenido(tsGapAlmuerzo, operador);
+    regs.forEach(r => { todosLosRegistros.push(r); pendientesAPI.push(r); });
+  }
+
   async function iniciarAlmuerzo() {
     if (!operadorActual || almuerzoActivo || yaAlmorzoHoy()) {
       if (yaAlmorzoHoy()) setStatus("Ya se registró almuerzo hoy", "error");
@@ -612,6 +718,9 @@
     todosLosRegistros.push(reg); almuerzoActivo = reg; actividadActiva = null;
     ejecutarVerificaciones();
     try {
+      for (const p of pendientesAPI.splice(0)) {
+        await fetch(`${API_URL}?token=${TOKEN}`, { method: "POST", redirect: "follow", body: JSON.stringify(p) });
+      }
       await fetch(`${API_URL}?token=${TOKEN}`, { method: "POST", redirect: "follow", body: JSON.stringify(reg) });
       setStatus("✓ Almuerzo iniciado", "ok"); setTimeout(() => setStatus("", ""), 2000);
     } catch (err) {
