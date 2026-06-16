@@ -418,7 +418,7 @@
   // ── HITOS ──────────────────────────────────────
   let almuerzoExtraPendiente = null;
 
-  function registrarHito(tipo) {
+  async function registrarHito(tipo) {
     const ahora = new Date();
 
     // Guard anti-duplicado: hitos únicos del día (en memoria, sin leer la hoja).
@@ -450,13 +450,12 @@
         hitoPendienteTipo = null;
         cerrarModal();
 
-        // Registrar atraso_pm
+        // Registrar atraso_pm — envío secuencial: el fin debe llegar después del inicio
         const detId = crypto.randomUUID();
         registros.push({ id: detId, inicio: extra.inicioExtra, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa, tipo: "atraso_pm" });
-        enviar({ accion: "inicio", id: detId, inicio: extra.inicioExtra, causa, tipo: "atraso_pm" });
-        enviar({ accion: "fin", id: detId, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa });
-
         estado = "operando"; actualizarUI();
+        await enviar({ accion: "inicio", id: detId, inicio: extra.inicioExtra, causa, tipo: "atraso_pm" });
+        await enviar({ accion: "fin", id: detId, fin: extra.finExtra, duracion_min: extra.minutosExtra, causa });
         setStatus("✓ Registrado", "ok"); setTimeout(() => setStatus("",""), 2000);
         return;
       }
