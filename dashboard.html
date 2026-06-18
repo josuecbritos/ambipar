@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Gestión — Clasificación Giri</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00873D; --green-dark: #006830; --green-light: #e8f5ee; --green-mid: #b8dfc8;
+    --white: #ffffff; --gray-50: #f4f5f4; --gray-100: #eaecea; --gray-200: #dde0dd; --gray-300: #c8cdc8;
+    --gray-500: #7a877a; --gray-700: #3d473d; --gray-800: #1e271e;
+    --red: #c0392b; --red-light: #fdf0ee; --red-mid: #f1a9a0;
+    --yellow: #e8a33d; --yellow-light: #fdf6e9;
+    --blue: #2d6fa3; --blue-light: #e9f1f7;
+    --lime: #BDFE00;
+    --sem-green-bg: #e8f5ee; --sem-green-tx: #00873D;
+    --sem-yellow-bg: #fdf6e9; --sem-yellow-tx: #b5781a;
+    --sem-red-bg: #fdf0ee; --sem-red-tx: #c0392b;
+    --shadow: 0 2px 16px rgba(0,87,40,0.08); --radius: 14px; --radius-sm: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Montserrat', sans-serif; background: var(--gray-50); color: var(--gray-800); padding-bottom: 40px; }
+
+  .topbar { background: var(--lime); padding: 12px 28px; display: flex; align-items: center; gap: 14px; }
+  .topbar-logo { font-weight: 800; font-size: 18px; letter-spacing: -0.02em; }
+  .topbar-sep { width: 1px; height: 22px; background: rgba(0,0,0,0.25); }
+  .topbar-title { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+  .topbar-right { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--gray-700); }
+
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 28px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+  .tabs { display: flex; gap: 4px; background: var(--gray-100); padding: 4px; border-radius: var(--radius-sm); }
+  .tab { padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; color: var(--gray-500); cursor: pointer; border: none; background: none; }
+  .tab.active { background: var(--white); color: var(--green-dark); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .period-nav { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .period-nav button { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--gray-300); background: var(--white); cursor: pointer; font-size: 15px; color: var(--gray-700); }
+  .period-label { font-size: 14px; font-weight: 700; min-width: 200px; text-align: center; }
+
+  /* TARJETAS RESUMEN AGRUPADAS */
+  .card-groups { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 16px; margin-bottom: 22px; align-items: stretch; }
+  .group-block { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 12px 12px 14px; display: flex; flex-direction: column; }
+  .group-head { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-dark); margin-bottom: 10px; padding-left: 2px; display: flex; align-items: center; gap: 8px; }
+  .group-head::before { content: ""; width: 4px; height: 13px; border-radius: 2px; background: var(--green-mid); flex-shrink: 0; }
+  .group-head::after { content: ""; flex: 1; height: 1px; background: var(--gray-200); }
+  .group-cards { display: grid; gap: 12px; flex: 1; align-items: stretch; }
+  .group-cards.two { grid-template-columns: 1fr 1fr; }
+  .card { background: var(--gray-50); border: 1px solid var(--gray-100); border-radius: var(--radius-sm); padding: 14px 16px; }
+  .card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 8px; }
+  .card-value { font-family: 'Roboto Mono', monospace; font-size: 30px; font-weight: 700; line-height: 1; color: var(--gray-800); }
+  .card-value .dot { width: 13px; height: 13px; margin-right: 8px; }
+  .card-unit { font-size: 13px; font-weight: 500; color: var(--gray-500); }
+  .card-meta { font-size: 11px; font-weight: 600; color: var(--gray-500); margin-top: 8px; }
+  .card-delta { font-size: 11px; font-weight: 700; margin-top: 4px; }
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--red); }
+  .card-sub { font-size: 10px; font-weight: 700; color: var(--gray-500); margin-top: 4px; }
+
+  .section { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; margin-bottom: 22px; }
+  .section-title { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gray-700); margin-bottom: 16px; }
+
+  /* TABLA TRANSPUESTA */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  /* En tablas con pocas columnas (mensual): pelotita junto al número, centrado */
+  table.compacta td.kpi-cell .dot, table.compacta td.col-total .dot { position: static; transform: none; margin-right: 6px; }
+  table.compacta td.kpi-cell, table.compacta td.col-total { padding-left: 6px; }
+  th, td { padding: 9px 6px; text-align: center; }
+  thead th { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--gray-500); border-bottom: 2px solid var(--gray-200); }
+  thead th:not(.kpi-name):not(.kpi-meta) { text-align: center; padding-left: 6px; width: 72px; box-sizing: border-box; }
+  .kpi-name { text-align: left; font-weight: 700; font-size: 12px; color: var(--gray-800); white-space: nowrap; width: 175px; }
+  .kpi-meta { text-align: center; font-size: 10px; font-weight: 600; color: var(--gray-500); white-space: nowrap; width: 70px; }
+  tbody td { border-bottom: 1px solid var(--gray-100); font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .col-sep { border-left: 2px solid var(--gray-200); }
+  tr.group-row .col-sep { border-left: none; }
+  tr.group-row td { text-align: left; font-family: 'Montserrat', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-dark); padding: 12px 10px 6px 16px; border-bottom: 1px solid var(--gray-200); background: var(--gray-100) !important; position: relative; }
+  tr.group-row td::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 4px; width: 4px; border-radius: 2px; background: var(--green-mid); }
+  .col-total { background: var(--gray-50); font-weight: 700; width: 72px; box-sizing: border-box; }
+  th.col-total { background: transparent; }
+  /* celdas con pelotita semáforo */
+  td.kpi-cell { position: relative; text-align: center; padding-left: 6px; width: 72px; box-sizing: border-box; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  td.kpi-cell .dot, td.col-total .dot { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); margin-right: 0; }
+  td.col-total { position: relative; }
+  .dot-green { background: var(--green); }
+  .dot-yellow { background: var(--yellow); }
+  .dot-red { background: var(--red); }
+
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .bar-stack { display: flex; height: 28px; border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
+  .bar-seg { height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--gray-700); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  .pareto-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .pareto-label { font-size: 11px; font-weight: 600; width: 175px; flex-shrink: 0; }
+  .pareto-bar-wrap { flex: 1; background: var(--gray-100); border-radius: 4px; height: 18px; overflow: hidden; }
+  .pareto-bar { height: 100%; background: var(--red-mid); border-radius: 4px; }
+  .pareto-val { font-family: 'Roboto Mono', monospace; font-size: 11px; font-weight: 700; color: var(--gray-700); width: 110px; text-align: right; flex-shrink: 0; }
+  .foot-note { font-size: 11px; color: var(--gray-500); margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">Ambipar</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">Clasificación Giri · Dashboard de Gestión</div>
+  <div class="topbar-right"><span id="dataStatus">Cargando datos…</span> <button id="btnActualizar" onclick="cargarDatos(true)" style="margin-left:10px;padding:4px 12px;border:1px solid rgba(0,0,0,0.2);border-radius:6px;background:rgba(255,255,255,0.5);cursor:pointer;font-size:12px;font-weight:600;">↻ Actualizar</button></div>
+</div>
+
+<div class="wrap">
+
+  <div class="controls">
+    <div class="tabs">
+      <button class="tab" id="tabDiario" onclick="mostrarVista('diario')">Diario</button>
+      <button class="tab active" id="tabSemanal" onclick="mostrarVista('semanal')">Semanal</button>
+      <button class="tab" id="tabMensual" onclick="mostrarVista('mensual')">Mensual</button>
+    </div>
+    <div class="period-nav">
+      <button onclick="navPrev()">&lsaquo;</button>
+      <div class="period-label" id="periodLabel">—</div>
+      <button onclick="navNext()">&rsaquo;</button>
+    </div>
+  </div>
+
+  <!-- ════════ VISTA DIARIA ════════ -->
+  <div id="vistaDiario" style="display:none;">
+    <div class="card-groups" id="d_cards"></div>
+    <div class="charts">
+      <div class="section">
+        <div class="section-title">Faresín alimentando — día</div>
+        <div class="bar-stack" id="d_faresin_bar"></div>
+        <div class="legend" id="d_faresin_leg"></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Distribución de enfardado — día</div>
+        <div class="bar-stack" id="d_enf_bar"></div>
+        <div class="legend" id="d_enf_leg"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Detalle de enfardado — día</div>
+      <div id="d_detalle"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Causas de detención — día (Pareto)</div>
+      <div id="d_pareto"></div>
+    </div>
+  </div>
+
+  </div><!-- /vistaDiario -->
+
+  <!-- ════════ VISTA SEMANAL ════════ -->
+  <div id="vistaSemanal">
+    <div class="card-groups" id="s_cards"></div>
+    <div class="section">
+      <div class="section-title">Detalle por día</div>
+      <table id="s_tabla"></table>
+    </div>
+    <div class="charts">
+      <div class="section">
+        <div class="section-title">Faresín alimentando — semana</div>
+        <div class="bar-stack" id="s_faresin_bar"></div>
+        <div class="legend" id="s_faresin_leg"></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Distribución de enfardado — semana</div>
+        <div class="bar-stack" id="s_enf_bar"></div>
+        <div class="legend" id="s_enf_leg"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Detalle de enfardado — semana</div>
+      <div id="s_detalle"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Causas de detención — semana (Pareto)</div>
+      <div id="s_pareto"></div>
+    </div>
+  </div><!-- /vistaSemanal -->
+
+  <!-- ════════ VISTA MENSUAL ════════ -->
+  <div id="vistaMensual" style="display:none;">
+    <div class="card-groups" id="m_cards"></div>
+    <div class="section">
+      <div class="section-title">Detalle por semana</div>
+      <table id="m_tabla" class="compacta"></table>
+      <div class="foot-note">Las semanas son lun-vie. El total del mes considera todos los días hábiles del mes.</div>
+    </div>
+    <div class="charts">
+      <div class="section">
+        <div class="section-title">Faresín alimentando — mes</div>
+        <div class="bar-stack" id="m_faresin_bar"></div>
+        <div class="legend" id="m_faresin_leg"></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Distribución de enfardado — mes</div>
+        <div class="bar-stack" id="m_enf_bar"></div>
+        <div class="legend" id="m_enf_leg"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Detalle de enfardado — mes</div>
+      <div id="m_detalle"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Causas de detención — mes (Pareto)</div>
+      <div id="m_pareto"></div>
+    </div>
+  </div><!-- /vistaMensual -->
+
+</div>
+
+<script>
+  // ════════════════════════════════════════════════════════════
+  //  ETAPA B — Capa de datos
+  //  Trae la data real del Apps Script, la normaliza y la deja en
+  //  memoria (window.DATA). Por ahora la vista sigue con dummy;
+  //  esta etapa solo confirma que la data llega bien.
+  // ════════════════════════════════════════════════════════════
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxjvmJR-3qoi8I4s59GvEE4DicI4-UMjdUq_bbXDH9xco_OuGlz2mmVOkgHXkemvxFJ/exec';
+  const API_TOKEN = 'dashboard2026';
+
+  // Zona horaria de operación (Chile). Convertimos los timestamps UTC del
+  // Sheet a un objeto con partes en hora local de Chile para los cálculos.
+  const TZ = 'America/Santiago';
+
+  // Estado en memoria
+  window.DATA = { paladas: [], detenciones: [], fardos: [], config: {}, cargado: false };
+
+  function setStatus(txt, esError) {
+    const el = document.getElementById('dataStatus');
+    el.textContent = txt;
+    el.style.color = esError ? '#c0392b' : '';
+  }
+
+  // Devuelve {fecha:'YYYY-MM-DD', hora:HH, min:MM, ms:Date} en hora local Chile
+  function aHoraChile(iso) {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d)) return null;
+    // partes en hora de Chile usando Intl
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    const p = {};
+    fmt.formatToParts(d).forEach(x => { p[x.type] = x.value; });
+    return {
+      fecha: `${p.year}-${p.month}-${p.day}`,
+      hora: parseInt(p.hour, 10),
+      min: parseInt(p.minute, 10),
+      seg: parseInt(p.second, 10),
+      date: d
+    };
+  }
+
+  async function cargarDatos(fresh) {
+    setStatus(fresh ? 'Actualizando…' : 'Cargando datos…');
+    try {
+      const url = `${API_URL}?token=${API_TOKEN}${fresh ? '&fresh=1' : ''}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const json = await resp.json();
+      if (!json.ok) throw new Error(json.error || 'respuesta no ok');
+
+      // Normalizar timestamps de cada hoja a hora local Chile
+      const pal = (json.data.paladas || []).map(r => ({ ...r, _t: aHoraChile(r.timestamp) }));
+      const det = (json.data.detenciones || []).map(r => ({
+        ...r, _ini: aHoraChile(r.inicio), _fin: aHoraChile(r.fin)
+      }));
+      const far = (json.data.fardos || []).map(r => ({ ...r, _t: aHoraChile(r.timestamp) }));
+
+      window.DATA = {
+        paladas: pal, detenciones: det, fardos: far,
+        config: json.config || {}, cargado: true,
+        generado: json.generated_at
+      };
+
+      // Estado: fecha y hora de la última actualización (generated_at del Apps Script)
+      const fechaAct = json.generated_at ? new Date(json.generated_at) : new Date();
+      const fmtAct = new Intl.DateTimeFormat('es-CL', {
+        timeZone: TZ, day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      }).format(fechaAct);
+      setStatus(`Última actualización: ${fmtAct}`);
+      console.log('DATA cargada:', window.DATA);
+
+      // ETAPA C — calcular KPIs apenas llega la data
+      window.KPIS = calcularKPIs(window.DATA);
+      console.log('KPIS calculados:', window.KPIS);
+
+      // ETAPA D — render inicial: último día con datos, en vista diaria
+      const navs = fechasNavegables();
+      if (navs.length) {
+        renderDiario(navs[navs.length - 1]);
+        mostrarVista('diario');
+      }
+
+    } catch (err) {
+      setStatus('Error al cargar datos: ' + err.message, true);
+      console.error(err);
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  ETAPA C — Motor de cálculo de KPIs
+  //  Toma window.DATA y produce KPIs por día, semana y mes.
+  //  No toca la vista (eso es Etapa D). Resultado en window.KPIS.
+  // ════════════════════════════════════════════════════════════
+
+  // Fechas de inicio por KPI (cada KPI en blanco antes de su fecha)
+  const INICIO_KPI = {
+    paladas:      '2026-04-13',
+    operacion:    '2026-04-13',
+    enfardado:    '2026-04-30',
+    disponibilidad:'2026-05-07',
+    uso_faresin:  '2026-05-20'
+  };
+
+  // Lee config con defaults. Acepta valores tipo "09:30:00" o "09:30".
+  function leerConfig(cfg) {
+    const cp = cfg.paladas || {}, cd = cfg.detenciones || {}, cf = cfg.fardos || {};
+    const num = (v, def) => { const n = parseFloat(v); return isNaN(n) ? def : n; };
+    // horarios_fin: "18:00,18:00,18:00,17:00,17:00,16:00,off" (lun..dom)
+    const horStr = String(cp.horarios_fin || '18:00,18:00,18:00,17:00,17:00,16:00,off');
+    const horariosFin = horStr.split(',').map(s => s.trim());
+    return {
+      metaPaladas:    num(cp.meta_paladas, 125),
+      metaUsoFaresin: num(cp.meta_uso_faresin, 75),
+      metaDisp:       num(cd.meta_disponibilidad, 85),
+      metaKg:         num(cf.meta_kg, 16000),
+      tolPrimera:     num(cd.margen_tolerancia, 5),       // min tolerancia 1ª palada
+      margenUltima:   num(cp.cumplimiento_ultima_margen_min, 10), // min antes de fin
+      timeout:        num(cp.timeout_inactividad_min, 10),
+      limiteAlmuerzo: num(cp.limite_almuerzo_min, 60),
+      horaInicio:     hhmmAMin(cp.hora_inicio_turno || '09:30'), // minutos desde medianoche
+      horariosFin                                       // array de "HH:mm" o "off" por día lun..dom
+    };
+  }
+
+  // Extrae minutos-desde-medianoche de un valor de hora en cualquier formato:
+  // '09:30', '09:30:00', o ISO '1899-12-30T09:30:00Z'. Toma la hora local del Date si es ISO.
+  function hhmmAMin(s) {
+    if (s == null) return 9 * 60 + 30;
+    const str = String(s);
+    // Caso ISO con fecha (contiene 'T'): parsear como Date y tomar hora local Chile
+    if (str.indexOf('T') !== -1) {
+      const t = aHoraChile(str);
+      if (t) return t.hora * 60 + t.min;
+    }
+    // Caso 'HH:mm' o 'HH:mm:ss': tomar los dos primeros grupos numéricos del final
+    const m = str.match(/(\d{1,2}):(\d{2})/);
+    if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    return 9 * 60 + 30; // fallback 09:30
+  }
+
+  // minutos desde medianoche (hora local Chile) de un registro normalizado _t/_ini/_fin
+  function minDelDia(t) { return t ? t.hora * 60 + t.min + t.seg / 60 : null; }
+
+  // Fin de turno oficial en minutos para una fecha dada. Devuelve null si 'off'.
+  function finTurnoMin(fechaStr, C) {
+    // Calcular día de semana en UTC puro para no depender de la zona del navegador.
+    const [y, m, d] = fechaStr.split('-').map(Number);
+    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 dom .. 6 sáb
+    const idx = (dow === 0) ? 6 : dow - 1; // mapear a lun=0..dom=6
+    const v = C.horariosFin[idx];
+    if (!v || v === 'off') return null;
+    return hhmmAMin(v);
+  }
+
+  // Agrupa registros por fecha local (campo _t.fecha o _ini.fecha)
+  function agruparPorDia(arr, campo) {
+    const m = {};
+    arr.forEach(r => {
+      const f = r[campo] && r[campo].fecha;
+      if (!f) return;
+      (m[f] = m[f] || []).push(r);
+    });
+    return m;
+  }
+
+  function calcularKPIs(DATA) {
+    const C = leerConfig(DATA.config);
+    const palDia = agruparPorDia(DATA.paladas, '_t');
+    const detDia = agruparPorDia(DATA.detenciones, '_ini');
+    const farDia = agruparPorDia(DATA.fardos, '_t');
+
+    // universo de fechas (todas las que aparezcan en cualquier hoja)
+    const fechas = Array.from(new Set([
+      ...Object.keys(palDia), ...Object.keys(detDia), ...Object.keys(farDia)
+    ])).sort();
+
+    const porDia = {};
+    fechas.forEach(f => {
+      porDia[f] = {
+        fecha: f,
+        paladas:       (f >= INICIO_KPI.paladas)       ? kpiPaladas(palDia[f] || []) : null,
+        enfardado:     (f >= INICIO_KPI.enfardado)     ? kpiEnfardado(farDia[f] || []) : null,
+        usoFaresin:    (f >= INICIO_KPI.uso_faresin)   ? kpiUsoFaresin(palDia[f] || [], f, C) : null,
+        disponibilidad:(f >= INICIO_KPI.disponibilidad)? kpiDisponibilidad(detDia[f] || [], f, C) : null,
+        operacion:     (f >= INICIO_KPI.operacion)     ? kpiOperacion(palDia[f] || [], f, C) : null
+      };
+    });
+
+    return { config: C, porDia, fechas, inicio: INICIO_KPI,
+             porSemana: agregar(porDia, fechas, 'semana', C),
+             porMes: agregar(porDia, fechas, 'mes', C) };
+  }
+
+  // Si true, las agregaciones ignoran días sin operación (sin paladas).
+  // Cambiar a false para incluir todos los días del rango.
+  const SOLO_DIAS_CON_DATOS = true;
+
+  // Devuelve clave de período: semana ISO (lun) o mes. Solo lun-vie.
+  function clavePeriodo(fecha, tipo) {
+    const [y, m, d] = fecha.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    const dow = dt.getUTCDay(); // 0 dom .. 6 sáb
+    if (dow === 0 || dow === 6) return null; // excluir sáb y dom
+    if (tipo === 'mes') return `${y}-${String(m).padStart(2, '0')}`;
+    // semana: lunes de esa semana
+    const lunes = new Date(dt); lunes.setUTCDate(d - (dow - 1));
+    return lunes.toISOString().slice(0, 10);
+  }
+
+  // Agrega los días en períodos (semana/mes) usando ratio agregado.
+  function agregar(porDia, fechas, tipo, C) {
+    const grupos = {};
+    fechas.forEach(f => {
+      const k = clavePeriodo(f, tipo);
+      if (!k) return;
+      (grupos[k] = grupos[k] || []).push(porDia[f]);
+    });
+
+    const out = {};
+    Object.keys(grupos).forEach(k => {
+      const dias = grupos[k];
+      const conPaladas = d => d.paladas && d.paladas.paladas > 0;
+      const usar = SOLO_DIAS_CON_DATOS ? dias.filter(conPaladas) : dias;
+
+      // Paladas: suma
+      const paladas = sumaCampo(usar, d => d.paladas && d.paladas.paladas);
+
+      // Enfardado: suma por categoría
+      const enf = { resimple: 0, otros: 0, rechazo: 0, total: 0, nFardos: 0, matriz: {}, n: 0 };
+      usar.forEach(d => { if (d.enfardado) {
+        enf.resimple += d.enfardado.resimple; enf.otros += d.enfardado.otros;
+        enf.rechazo += d.enfardado.rechazo; enf.total += d.enfardado.total;
+        enf.nFardos += d.enfardado.nFardos || 0; enf.n++;
+        const m = d.enfardado.matriz || {};
+        Object.keys(m).forEach(mat => { Object.keys(m[mat]).forEach(cli => {
+          if (!enf.matriz[mat]) enf.matriz[mat] = {};
+          if (!enf.matriz[mat][cli]) enf.matriz[mat][cli] = { fardos: 0, kg: 0 };
+          enf.matriz[mat][cli].fardos += m[mat][cli].fardos;
+          enf.matriz[mat][cli].kg += m[mat][cli].kg;
+        });});
+      }});
+
+      // Uso faresín: ratio agregado (sumar minutos, recalcular %)
+      const uf = { alimentando: 0, lineaDet: 0, otraAct: 0, detenido: 0, n: 0 };
+      usar.forEach(d => { if (d.usoFaresin) {
+        uf.alimentando += d.usoFaresin.min.alimentando; uf.lineaDet += d.usoFaresin.min.lineaDet;
+        uf.otraAct += d.usoFaresin.min.otraAct; uf.detenido += d.usoFaresin.min.detenido; uf.n++;
+      }});
+      const ufTot = uf.alimentando + uf.lineaDet + uf.otraAct + uf.detenido;
+      const ufPct = x => ufTot > 0 ? (x / ufTot) * 100 : 0;
+
+      // Disponibilidad: ratio agregado (minutos disp / programado)
+      let prog = 0, disp = 0, dn = 0; const causas = {};
+      usar.forEach(d => { if (d.disponibilidad) {
+        prog += d.disponibilidad.programado; disp += d.disponibilidad.dispMin; dn++;
+        Object.keys(d.disponibilidad.causas).forEach(c => {
+          causas[c] = (causas[c] || 0) + d.disponibilidad.causas[c];
+        });
+      }});
+
+      // Operación: % de días que cumplen
+      let cumpleP = 0, cumpleU = 0, opN = 0;
+      usar.forEach(d => { if (d.operacion) {
+        opN++;
+        if (d.operacion.cumplePrimera) cumpleP++;
+        if (d.operacion.cumpleUltima) cumpleU++;
+      }});
+
+      out[k] = {
+        clave: k, nDias: usar.length,
+        paladas: paladas != null ? { paladas } : null,
+        enfardado: enf.n ? { resimple: enf.resimple, otros: enf.otros, rechazo: enf.rechazo, total: enf.total, nFardos: enf.nFardos, matriz: enf.matriz } : null,
+        usoFaresin: uf.n ? { min: uf, total: ufTot, pct: {
+          alimentando: ufPct(uf.alimentando), lineaDet: ufPct(uf.lineaDet),
+          otraAct: ufPct(uf.otraAct), detenido: ufPct(uf.detenido) } } : null,
+        disponibilidad: dn ? { programado: prog, dispMin: disp, detenidoMin: prog - disp,
+          pct: prog > 0 ? (disp / prog) * 100 : 0, causas } : null,
+        operacion: opN ? { cumplePrimera: (cumpleP / opN) * 100, cumpleUltima: (cumpleU / opN) * 100,
+          combinado: ((cumpleP + cumpleU) / (2 * opN)) * 100, nDias: opN } : null
+      };
+    });
+    return out;
+  }
+
+  function sumaCampo(dias, fn) {
+    let s = null;
+    dias.forEach(d => { const v = fn(d); if (v != null) s = (s || 0) + v; });
+    return s;
+  }
+
+  // ── KPI 1: Paladas (conteo) ──────────────────────────────────
+  function kpiPaladas(regs) {
+    // cuenta paladas: tipo 'palada' o tipo vacío (puras antiguas)
+    const n = regs.filter(r => {
+      const t = (r.tipo || '').trim();
+      return t === 'palada' || t === '';
+    }).length;
+    return { paladas: n };
+  }
+
+  // ── KPI 2: Enfardado (kg por categoría) ──────────────────────
+  function kpiEnfardado(regs) {
+    let resimple = 0, otros = 0, rechazo = 0;
+    const matriz = {}; // matriz[material][cliente] = {fardos, kg}
+    regs.forEach(r => {
+      const kg = parseFloat(r.peso_kg) || 0;
+      const matRaw = (r.material || '—').trim();
+      const cliRaw = (r.cliente || '—').trim();
+      const mat = matRaw.toLowerCase();
+      const cli = cliRaw.toLowerCase();
+      if (mat === 'rechazo') rechazo += kg;       // Rechazo siempre es rechazo
+      else if (cli === 'resimple') resimple += kg;
+      else otros += kg;
+      // matriz por nombre original (para mostrar)
+      if (!matriz[matRaw]) matriz[matRaw] = {};
+      if (!matriz[matRaw][cliRaw]) matriz[matRaw][cliRaw] = { fardos: 0, kg: 0 };
+      matriz[matRaw][cliRaw].fardos++;
+      matriz[matRaw][cliRaw].kg += kg;
+    });
+    return { resimple, otros, rechazo, total: resimple + otros + rechazo, nFardos: regs.length, matriz };
+  }
+
+  // ── KPI 3: Uso faresín (4 categorías de tiempo) ──────────────
+  function kpiUsoFaresin(regs, fecha, C) {
+    if (!regs.length) return null;
+    const orden = regs.slice().sort((a, b) => a._t.date - b._t.date);
+    const finT = finTurnoMin(fecha, C);
+    if (finT == null) return null; // día 'off'
+
+    let alimentando = 0, lineaDet = 0, otraAct = 0, detenido = 0, almuerzoMin = 0;
+
+    for (let i = 0; i < orden.length; i++) {
+      const r = orden[i];
+      const ini = minDelDia(r._t);
+      // fin del bloque = inicio del siguiente registro, o aplica regla de cierre
+      let fin;
+      if (i < orden.length - 1) {
+        fin = minDelDia(orden[i + 1]._t);
+      } else {
+        // último registro del día: regla de cierre
+        // alimentando hasta +timeout, luego detenido hasta fin de turno
+        fin = finT;
+      }
+      let dur = fin - ini;
+      if (dur < 0) dur = 0;
+
+      const tipo = (r.tipo || '').trim();
+      const motivo = (r.motivo || '').trim();
+      const causa = (r.causa || '').trim().toLowerCase();
+
+      if (tipo === 'almuerzo_inicio' || tipo.indexOf('almuerzo') === 0) {
+        // el bloque de almuerzo se descuenta del denominador (tope limiteAlmuerzo)
+        almuerzoMin += Math.min(dur, C.limiteAlmuerzo);
+        continue;
+      }
+
+      if (i === orden.length - 1 && (tipo === 'palada' || tipo === '')) {
+        // regla de cierre: +timeout alimentando, resto detenido
+        const aliment = Math.min(dur, C.timeout);
+        alimentando += aliment;
+        detenido += Math.max(0, dur - C.timeout);
+        continue;
+      }
+
+      if (tipo === 'palada' || tipo === '') {
+        alimentando += dur;
+      } else if (tipo === 'actividad') {
+        if (motivo === 'no_puede_operar') lineaDet += dur;
+        else if (motivo === 'detenido') detenido += dur;
+        else if (motivo === 'prioriza_otra') otraAct += dur;
+        else otraAct += dur; // fallback
+      }
+    }
+
+    const totalOper = alimentando + lineaDet + otraAct + detenido; // sin almuerzo
+    const pct = (x) => totalOper > 0 ? (x / totalOper) * 100 : 0;
+    return {
+      min: { alimentando, lineaDet, otraAct, detenido, almuerzo: almuerzoMin },
+      total: totalOper,
+      pct: {
+        alimentando: pct(alimentando), lineaDet: pct(lineaDet),
+        otraAct: pct(otraAct), detenido: pct(detenido)
+      }
+    };
+  }
+
+  // ── KPI 4: Disponibilidad de línea ───────────────────────────
+  function kpiDisponibilidad(regs, fecha, C) {
+    const finT = finTurnoMin(fecha, C);
+    if (finT == null) return null; // 'off'
+    // minutos programados = (fin - inicio) - almuerzo fijo (no se descuenta el registro aparte)
+    let programado = (finT - C.horaInicio) - C.limiteAlmuerzo;
+    // minutos detenidos: suma de duracion_min de tipo 'detencion'
+    let detenidoMin = 0;
+    const causas = {};
+    regs.forEach(r => {
+      const tipo = (r.tipo || '').trim();
+      if (tipo === 'detencion') {
+        const dur = parseFloat(r.duracion_min) || 0;
+        detenidoMin += dur;
+        const c = (r.causa || 'Otros').trim();
+        causas[c] = (causas[c] || 0) + dur;
+      }
+      // NOTA: el almuerzo NO se resta aquí; ya está descontado como bloque fijo de 60 min arriba.
+    });
+    if (programado <= 0) return null;
+    const dispMin = Math.max(0, programado - detenidoMin);
+    return {
+      programado, detenidoMin, dispMin,
+      pct: (dispMin / programado) * 100,
+      causas // {causa: minutos}
+    };
+  }
+
+  // ── KPI 5: Operación faresín (1ª y última palada) ────────────
+  function kpiOperacion(regs, fecha, C) {
+    const paladas = regs.filter(r => {
+      const t = (r.tipo || '').trim();
+      return t === 'palada' || t === '';
+    }).sort((a, b) => a._t.date - b._t.date);
+    if (!paladas.length) return null;
+
+    const primera = paladas[0]._t;
+    const ultima = paladas[paladas.length - 1]._t;
+    const primeraMin = minDelDia(primera);
+    const ultimaMin = minDelDia(ultima);
+
+    const finT = finTurnoMin(fecha, C);
+    const limitePrimera = C.horaInicio + C.tolPrimera;         // 9:30 + 5 = 9:35
+    const limiteUltima = (finT != null) ? finT - C.margenUltima : null; // fin - 10
+
+    return {
+      primera: `${String(primera.hora).padStart(2,'0')}:${String(primera.min).padStart(2,'0')}`,
+      ultima:  `${String(ultima.hora).padStart(2,'0')}:${String(ultima.min).padStart(2,'0')}`,
+      cumplePrimera: primeraMin <= limitePrimera,
+      cumpleUltima: (limiteUltima != null) ? ultimaMin >= limiteUltima : null
+    };
+  }
+
+  // Cargar al iniciar
+  cargarDatos();
+
+  // ════════════════════════════════════════════════════════════
+  //  ETAPA D — Render de la vista diaria
+  // ════════════════════════════════════════════════════════════
+  const NAV = { diario: null }; // fecha actual seleccionada
+
+  // Helpers de formato
+  const fmt1 = n => (n == null ? '–' : n.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+  const fmt0 = n => (n == null ? '–' : Math.round(n).toLocaleString('es-CL'));
+  const kg2t = kg => kg / 1000;
+  const minAhhmm = m => { if (m == null) return '–'; const t = Math.round(m); const h = Math.floor(t / 60); const mm = t % 60; return `${h}:${String(mm).padStart(2, '0')}`; };
+
+  // Semáforo: clase de dot según valor vs meta.
+  // Compara el valor REDONDEADO como se muestra (decimales dec), para evitar
+  // incoherencias tipo "85% en amarillo" cuando el real era 84,6 pero se ve 85.
+  function dotClase(valor, meta, dec = 0) {
+    if (valor == null || meta == null) return 'dot-gray';
+    const f = Math.pow(10, dec);
+    const v = Math.round(valor * f) / f;
+    const r = v / meta;
+    if (r >= 1) return 'dot-green';
+    if (r >= 0.9) return 'dot-yellow';
+    return 'dot-red';
+  }
+  // Para tiempos/cumplimiento booleano
+  function dotBool(ok) { return ok ? 'dot-green' : 'dot-red'; }
+
+  // Delta vs período anterior (en %); devuelve HTML
+  function deltaHTML(actual, anterior, sufijo) {
+    if (actual == null || anterior == null || anterior === 0) return '';
+    const pct = ((actual - anterior) / Math.abs(anterior)) * 100;
+    const up = pct >= 0;
+    const cls = up ? 'delta-up' : 'delta-down';
+    const flecha = up ? '▲' : '▼';
+    return `<div class="card-delta ${cls}">${flecha} ${up ? '+' : '−'}${Math.abs(pct).toFixed(0)}% ${sufijo}</div>`;
+  }
+
+  function nombreFecha(f) {
+    const [y, m, d] = f.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${dias[dt.getUTCDay()]} ${d} ${meses[m - 1]} ${y}`;
+  }
+
+  // Fechas con paladas, ordenadas (para navegar)
+  function fechasNavegables() {
+    const K = window.KPIS;
+    return K.fechas.filter(f => K.porDia[f].paladas && K.porDia[f].paladas.paladas > 0);
+  }
+
+  function renderDiario(fecha) {
+    const K = window.KPIS, C = K.config;
+    const dia = K.porDia[fecha];
+    const navs = fechasNavegables();
+    const idx = navs.indexOf(fecha);
+    const prevFecha = idx > 0 ? navs[idx - 1] : null;
+    const ant = prevFecha ? K.porDia[prevFecha] : null;
+
+    document.getElementById('periodLabel').textContent = nombreFecha(fecha);
+
+    // ── Tarjetas ──
+    const enf = dia.enfardado, disp = dia.disponibilidad, op = dia.operacion,
+          pal = dia.paladas, uf = dia.usoFaresin;
+    const metaResimpleT = C.metaKg / 1000;
+
+    const card = (label, valorHTML, metaTxt, deltaHTML2, subTxt) => `
+      <div class="card">
+        <div class="card-label">${label}</div>
+        <div class="card-value">${valorHTML}</div>
+        <div class="card-meta">${metaTxt}</div>
+        ${deltaHTML2 || ''}
+        ${subTxt ? `<div class="card-sub">${subTxt}</div>` : ''}
+      </div>`;
+
+    // Salida — Enfardado Resimple
+    const resimpleT = enf ? kg2t(enf.resimple) : null;
+    const cSalida = card(
+      'Enfardado Resimple',
+      `<span class="dot ${dotClase(enf && enf.resimple, C.metaKg)}"></span>${enf ? fmt1(resimpleT) : '–'}<span class="card-unit"> t</span>`,
+      `Meta ${fmt0(metaResimpleT)} t`,
+      ant && ant.enfardado ? deltaHTML(enf && enf.resimple, ant.enfardado.resimple, 'vs día ant.') : '',
+      enf ? `Otros ${fmt1(kg2t(enf.otros))} t · Rechazo ${fmt1(kg2t(enf.rechazo))} t · Total ${fmt1(kg2t(enf.total))} t` : null
+    );
+
+    // Funcionamiento — Disponibilidad + Operación
+    const cDisp = card(
+      'Disponibilidad',
+      `<span class="dot ${dotClase(disp && disp.pct, C.metaDisp)}"></span>${disp ? fmt0(disp.pct) : '–'}<span class="card-unit"> %</span>`,
+      `Meta ${fmt0(C.metaDisp)}%`,
+      ant && ant.disponibilidad ? deltaHTML(disp && disp.pct, ant.disponibilidad.pct, 'vs día ant.') : '',
+      disp ? `${minAhhmm(disp.detenidoMin)} hrs de ${minAhhmm(disp.programado)} hrs detenidos` : null
+    );
+    const opComb = op ? ((op.cumplePrimera ? 1 : 0) + (op.cumpleUltima ? 1 : 0)) / 2 * 100 : null;
+    const cOp = card(
+      'Arranque y Detención',
+      `<span class="dot ${op ? dotClase(opComb, 100) : 'dot-gray'}"></span>${op ? fmt0(opComb) : '–'}<span class="card-unit"> %</span>`,
+      'Meta 100% cumpl.',
+      '',
+      op ? `1ª palada ${op.primera} ${op.cumplePrimera ? '✓' : '✗'} · última ${op.ultima} ${op.cumpleUltima ? '✓' : '✗'}` : null
+    );
+
+    // Entrada — Paladas + Faresín alimentando
+    const cPal = card(
+      'Paladas',
+      `<span class="dot ${dotClase(pal && pal.paladas, C.metaPaladas)}"></span>${pal ? fmt0(pal.paladas) : '–'}`,
+      `Meta ${fmt0(C.metaPaladas)}`,
+      ant && ant.paladas ? deltaHTML(pal && pal.paladas, ant.paladas.paladas, 'vs día ant.') : ''
+    );
+    const ufAlim = uf ? uf.pct.alimentando : null;
+    const cFar = card(
+      'Faresín alimentando',
+      `<span class="dot ${dotClase(ufAlim, C.metaUsoFaresin)}"></span>${uf ? fmt0(ufAlim) : '–'}<span class="card-unit"> %</span>`,
+      `Meta ${fmt0(C.metaUsoFaresin)}%`,
+      ant && ant.usoFaresin ? deltaHTML(ufAlim, ant.usoFaresin.pct.alimentando, 'vs día ant.') : ''
+    );
+
+    document.getElementById('d_cards').innerHTML = `
+      <div class="group-block"><div class="group-head">Salida</div>
+        <div class="group-cards">${cSalida}</div></div>
+      <div class="group-block"><div class="group-head">Funcionamiento de la línea</div>
+        <div class="group-cards two">${cDisp}${cOp}</div></div>
+      <div class="group-block"><div class="group-head">Entrada</div>
+        <div class="group-cards two">${cPal}${cFar}</div></div>`;
+
+    // ── Gráfico faresín (barra apilada) ──
+    if (uf) {
+      const seg = (w, c) => `<div class="bar-seg" style="width:${w}%;background:${c}"></div>`;
+      document.getElementById('d_faresin_bar').innerHTML =
+        seg(uf.pct.alimentando, 'var(--green)') + seg(uf.pct.otraAct, 'var(--yellow)') +
+        seg(uf.pct.lineaDet, 'var(--blue)') + seg(uf.pct.detenido, 'var(--red)');
+      const lg = (c, t, v) => `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span>${t} ${fmt0(v)}%</div>`;
+      document.getElementById('d_faresin_leg').innerHTML =
+        lg('var(--green)', 'Alimentando', uf.pct.alimentando) + lg('var(--yellow)', 'Otra actividad (por priorización)', uf.pct.otraAct) +
+        lg('var(--blue)', 'Otra actividad (por línea detenida)', uf.pct.lineaDet) + lg('var(--red)', 'Detenido', uf.pct.detenido);
+    } else {
+      document.getElementById('d_faresin_bar').innerHTML = '';
+      document.getElementById('d_faresin_leg').innerHTML = '<div class="legend-item">Sin datos de faresín este día</div>';
+    }
+
+    // ── Gráfico enfardado (barra apilada) ──
+    if (enf && enf.total > 0) {
+      const p = x => (x / enf.total) * 100;
+      const seg = (w, c) => `<div class="bar-seg" style="width:${w}%;background:${c}"></div>`;
+      document.getElementById('d_enf_bar').innerHTML =
+        seg(p(enf.resimple), 'var(--green)') + seg(p(enf.otros), 'var(--blue)') + seg(p(enf.rechazo), 'var(--gray-500)');
+      const lg = (c, t, kg) => `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span>${t} ${fmt1(kg2t(kg))} t (${fmt0(p(kg))}%)</div>`;
+      document.getElementById('d_enf_leg').innerHTML =
+        lg('var(--green)', 'Resimple', enf.resimple) + lg('var(--blue)', 'Otros clientes', enf.otros) + lg('var(--gray-500)', 'Rechazo', enf.rechazo);
+    } else {
+      document.getElementById('d_enf_bar').innerHTML = '';
+      document.getElementById('d_enf_leg').innerHTML = '<div class="legend-item">Sin datos de enfardado este día</div>';
+    }
+
+    // ── Detalle de enfardado (matriz material × cliente) ──
+    renderDetalleEnfardado('d_detalle', enf);
+
+    // ── Pareto detenciones ──
+    const pcont = document.getElementById('d_pareto');
+    if (disp && disp.causas && Object.keys(disp.causas).length) {
+      const arr = Object.entries(disp.causas).sort((a, b) => b[1] - a[1]);
+      const max = arr[0][1];
+      pcont.innerHTML = arr.map(([causa, min]) => `
+        <div class="pareto-row"><div class="pareto-label">${causa}</div>
+        <div class="pareto-bar-wrap"><div class="pareto-bar" style="width:${(min / max) * 100}%"></div></div>
+        <div class="pareto-val">${minAhhmm(min)} hrs</div></div>`).join('');
+    } else {
+      pcont.innerHTML = '<div class="legend-item">Sin detenciones registradas este día</div>';
+    }
+
+    // ── Flechas ──
+    NAV.diario = fecha;
+    actualizarFlechas(idx, navs.length);
+  }
+
+  function actualizarFlechas(idx, total) {
+    const btns = document.querySelectorAll('.period-nav button');
+    if (btns.length >= 2) {
+      btns[0].disabled = (idx <= 0);
+      btns[1].disabled = (idx >= total - 1);
+      btns[0].style.opacity = btns[0].disabled ? 0.3 : 1;
+      btns[1].style.opacity = btns[1].disabled ? 0.3 : 1;
+    }
+  }
+
+  function navegarDiario(dir) {
+    const navs = fechasNavegables();
+    const idx = navs.indexOf(NAV.diario);
+    const nuevo = idx + dir;
+    if (nuevo >= 0 && nuevo < navs.length) renderDiario(navs[nuevo]);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  ETAPA D — Render de la vista semanal
+  // ════════════════════════════════════════════════════════════
+  NAV.semana = null;
+
+  function lunesDe(fecha) {
+    const [y, m, d] = fecha.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    const dow = dt.getUTCDay();
+    const off = (dow === 0) ? -6 : (1 - dow);
+    dt.setUTCDate(d + off);
+    return dt.toISOString().slice(0, 10);
+  }
+  function sumarDias(fecha, n) {
+    const [y, m, d] = fecha.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d)); dt.setUTCDate(d + n);
+    return dt.toISOString().slice(0, 10);
+  }
+  // claves de semana (lunes) que tienen datos, ordenadas
+  function semanasNavegables() {
+    return Object.keys(window.KPIS.porSemana).sort();
+  }
+  function nombreSemana(lunes) {
+    const vie = sumarDias(lunes, 4);
+    const [, , d1] = lunes.split('-').map(Number);
+    const [, m2, d2] = vie.split('-').map(Number);
+    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    return `Semana ${d1}–${d2} ${meses[m2 - 1]} ${lunes.slice(0, 4)}`;
+  }
+  function mesDe(lunes) { return lunes.slice(0, 7); }
+
+  function renderSemanal(lunes) {
+    const K = window.KPIS, C = K.config;
+    const sem = K.porSemana[lunes];
+    if (!sem) return;
+    const semanas = semanasNavegables();
+    const idx = semanas.indexOf(lunes);
+    const sem1 = idx > 0 ? K.porSemana[semanas[idx - 1]] : null;
+    const sem2 = idx > 1 ? K.porSemana[semanas[idx - 2]] : null;
+    const sem3 = idx > 2 ? K.porSemana[semanas[idx - 3]] : null;
+    const mes = K.porMes[mesDe(lunes)] || null;
+
+    document.getElementById('periodLabel').textContent = nombreSemana(lunes);
+
+    // ── Tarjetas (comparación vs Sem-1) ──
+    const enf = sem.enfardado, disp = sem.disponibilidad, op = sem.operacion,
+          pal = sem.paladas, uf = sem.usoFaresin;
+    const metaResimpleSemT = (C.metaKg * sem.nDias) / 1000; // meta proporcional a días
+    const card = (label, valorHTML, metaTxt, deltaH, subTxt) => `
+      <div class="card"><div class="card-label">${label}</div>
+        <div class="card-value">${valorHTML}</div>
+        <div class="card-meta">${metaTxt}</div>${deltaH || ''}
+        ${subTxt ? `<div class="card-sub">${subTxt}</div>` : ''}</div>`;
+
+    const resimpleT = enf ? kg2t(enf.resimple) : null;
+    const cSalida = card('Enfardado Resimple',
+      `<span class="dot ${dotClase(enf && enf.resimple, C.metaKg * sem.nDias)}"></span>${enf ? fmt1(resimpleT) : '–'}<span class="card-unit"> t</span>`,
+      `Meta ${fmt0(metaResimpleSemT)} t`,
+      sem1 && sem1.enfardado ? deltaHTML(enf && enf.resimple, sem1.enfardado.resimple, 'vs Sem-1') : '',
+      enf ? `Otros ${fmt1(kg2t(enf.otros))} t · Rechazo ${fmt1(kg2t(enf.rechazo))} t · Total ${fmt1(kg2t(enf.total))} t` : null);
+
+    const cDisp = card('Disponibilidad',
+      `<span class="dot ${dotClase(disp && disp.pct, C.metaDisp)}"></span>${disp ? fmt0(disp.pct) : '–'}<span class="card-unit"> %</span>`,
+      `Meta ${fmt0(C.metaDisp)}%`,
+      sem1 && sem1.disponibilidad ? deltaHTML(disp && disp.pct, sem1.disponibilidad.pct, 'vs Sem-1') : '',
+      disp ? `${minAhhmm(disp.detenidoMin)} hrs de ${minAhhmm(disp.programado)} hrs detenidos` : null);
+    const cOp = card('Arranque y Detención',
+      `<span class="dot ${op ? dotClase(op.combinado, 100) : 'dot-gray'}"></span>${op ? fmt0(op.combinado) : '–'}<span class="card-unit"> %</span>`,
+      'Meta 100% cumpl.',
+      sem1 && sem1.operacion ? deltaHTML(op && op.combinado, sem1.operacion.combinado, 'vs Sem-1') : '',
+      op ? `1ª palada ${fmt0(op.cumplePrimera)}% · última ${fmt0(op.cumpleUltima)}%` : null);
+
+    const cPal = card('Paladas',
+      `<span class="dot ${dotClase(pal && pal.paladas, C.metaPaladas * sem.nDias)}"></span>${pal ? fmt0(pal.paladas) : '–'}`,
+      `Meta ${fmt0(C.metaPaladas * sem.nDias)}`,
+      sem1 && sem1.paladas ? deltaHTML(pal && pal.paladas, sem1.paladas.paladas, 'vs Sem-1') : '');
+    const ufAlim = uf ? uf.pct.alimentando : null;
+    const cFar = card('Faresín alimentando',
+      `<span class="dot ${dotClase(ufAlim, C.metaUsoFaresin)}"></span>${uf ? fmt0(ufAlim) : '–'}<span class="card-unit"> %</span>`,
+      `Meta ${fmt0(C.metaUsoFaresin)}%`,
+      sem1 && sem1.usoFaresin ? deltaHTML(ufAlim, sem1.usoFaresin.pct.alimentando, 'vs Sem-1') : '');
+
+    document.getElementById('s_cards').innerHTML = `
+      <div class="group-block"><div class="group-head">Salida</div><div class="group-cards">${cSalida}</div></div>
+      <div class="group-block"><div class="group-head">Funcionamiento de la línea</div><div class="group-cards two">${cDisp}${cOp}</div></div>
+      <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>`;
+
+    // ── Tabla detalle por día ──
+    renderTablaSemanal(lunes, sem, sem1, sem2, sem3, mes, C);
+
+    // ── Gráficos semana ──
+    renderBarrasFaresin('s_faresin_bar', 's_faresin_leg', uf);
+    renderBarrasEnfardado('s_enf_bar', 's_enf_leg', enf);
+    renderDetalleEnfardado('s_detalle', enf);
+    renderPareto('s_pareto', disp && disp.causas);
+
+    NAV.semana = lunes;
+    actualizarFlechas(idx, semanas.length);
+  }
+
+  function renderTablaSemanal(lunes, sem, sem1, sem2, sem3, mes, C) {
+    const K = window.KPIS;
+    const dias = [0, 1, 2, 3, 4].map(i => sumarDias(lunes, i));
+    const diaNom = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
+    const dd = dias.map(f => K.porDia[f] || null);
+
+    // helper celda con dot
+    const cel = (txt, cls, extra = '') => `<td class="kpi-cell ${extra}"><span class="dot ${cls}"></span>${txt}</td>`;
+    const celT = (txt, cls, extra = '') => `<td class="col-total ${extra}"><span class="dot ${cls}"></span>${txt}</td>`;
+
+    // filas: cada KPI
+    function filaEnfardado() {
+      const cels = dd.map(d => d && d.enfardado
+        ? cel(fmt1(kg2t(d.enfardado.resimple)), dotClase(d.enfardado.resimple, C.metaKg))
+        : '<td class="kpi-cell">–</td>').join('');
+      const tot = p => p && p.enfardado ? celT(fmt1(kg2t(p.enfardado.resimple)), dotClase(p.enfardado.resimple, C.metaKg * (p.nDias || 5))) : '<td class="col-total">–</td>';
+      const totMes = mes && mes.enfardado ? celT(fmt0(kg2t(mes.enfardado.resimple)), dotClase(mes.enfardado.resimple, C.metaKg * (mes.nDias || 20)), 'col-sep') : '<td class="col-total col-sep">–</td>';
+      return `<tr><td class="kpi-name">Enfardado Resimple (t)</td><td class="kpi-meta">16 t/día</td>${cels}${tot(sem).replace('col-total','col-total col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${totMes}</tr>`;
+    }
+    // filas informativas (sin semáforo)
+    function filaInfo(nombre, getDia, getAgg) {
+      const cels = dd.map(d => { const v = getDia(d); return `<td class="kpi-cell">${v == null ? '–' : v}</td>`; }).join('');
+      const tot = (p, sep) => { const v = p ? getAgg(p) : null; return `<td class="col-total ${sep||''}">${v == null ? '–' : v}</td>`; };
+      return `<tr><td class="kpi-name">${nombre}</td><td class="kpi-meta">–</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
+    }
+    const filaTotalEnf = () => filaInfo('Total enfardado (t)',
+      d => d && d.enfardado ? fmt1(kg2t(d.enfardado.total)) : null,
+      p => p && p.enfardado ? fmt1(kg2t(p.enfardado.total)) : null);
+    const filaNFardos = () => filaInfo('N° de fardos totales',
+      d => d && d.enfardado ? fmt0(d.enfardado.nFardos) : null,
+      p => p && p.enfardado ? fmt0(p.enfardado.nFardos) : null);
+    function filaPct(nombre, meta, getDia, getAgg, fmtv) {
+      const cels = dd.map(d => { const v = getDia(d); return v == null ? '<td class="kpi-cell">–</td>' : cel(fmtv(v), dotClase(v, meta)); }).join('');
+      const tot = (p, sep) => { const v = p ? getAgg(p) : null; return v == null ? `<td class="col-total ${sep||''}">–</td>` : celT(fmtv(v), dotClase(v, meta), sep || ''); };
+      return `<tr><td class="kpi-name">${nombre}</td><td class="kpi-meta">${meta}%</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
+    }
+    function filaPalada(nombre, metaTxt, getHora, getCumpleDia, getPctAgg) {
+      const cels = dd.map(d => {
+        const c = getCumpleDia(d);
+        if (c == null) return '<td class="kpi-cell">–</td>';
+        return cel(getHora(d), c ? 'dot-green' : 'dot-red');
+      }).join('');
+      const tot = (p, sep) => {
+        const v = p ? getPctAgg(p) : null;
+        return v == null ? `<td class="col-total ${sep||''}">–</td>` : celT(fmt0(v) + '%', dotClase(v, 100), sep || '');
+      };
+      return `<tr><td class="kpi-name">${nombre}</td><td class="kpi-meta">${metaTxt}</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
+    }
+    function filaPaladas() {
+      const cels = dd.map(d => d && d.paladas ? cel(fmt0(d.paladas.paladas), dotClase(d.paladas.paladas, C.metaPaladas)) : '<td class="kpi-cell">–</td>').join('');
+      const tot = (p, sep) => p && p.paladas ? celT(fmt0(p.paladas.paladas), dotClase(p.paladas.paladas, C.metaPaladas * (p.nDias || 5)), sep || '') : `<td class="col-total ${sep||''}">–</td>`;
+      return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">125/día</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
+    }
+
+    const html = `
+      <thead><tr>
+        <th class="kpi-name">KPI</th><th class="kpi-meta">Meta</th>
+        ${dias.map((f, i) => `<th>${diaNom[i]} ${f.slice(8)}</th>`).join('')}
+        <th class="col-total col-sep">Semana</th><th class="col-total">Sem-1</th>
+        <th class="col-total">Sem-2</th><th class="col-total">Sem-3</th><th class="col-total col-sep">Mes</th>
+      </tr></thead>
+      <tbody>
+        <tr class="group-row"><td colspan="12">Salida</td></tr>
+        ${filaEnfardado()}
+        ${filaTotalEnf()}
+        ${filaNFardos()}
+        <tr class="group-row"><td colspan="12">Funcionamiento de la línea</td></tr>
+        ${filaPct('Disponibilidad', C.metaDisp, d => d && d.disponibilidad && d.disponibilidad.pct, p => p.disponibilidad && p.disponibilidad.pct, v => fmt0(v) + '%')}
+        ${filaPalada('1ª palada', '≤ 9:30', d => d && d.operacion && d.operacion.primera, d => d && d.operacion ? d.operacion.cumplePrimera : null, p => p.operacion && p.operacion.cumplePrimera)}
+        ${filaPalada('Última palada', '≥ fin−10m', d => d && d.operacion && d.operacion.ultima, d => d && d.operacion ? d.operacion.cumpleUltima : null, p => p.operacion && p.operacion.cumpleUltima)}
+        <tr class="group-row"><td colspan="12">Entrada</td></tr>
+        ${filaPaladas()}
+        ${filaPct('Faresín alimentando', C.metaUsoFaresin, d => d && d.usoFaresin && d.usoFaresin.pct.alimentando, p => p.usoFaresin && p.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
+      </tbody>`;
+    document.getElementById('s_tabla').innerHTML = html;
+  }
+
+  // Gráficos reutilizables
+  function renderBarrasFaresin(barId, legId, uf) {
+    const bar = document.getElementById(barId), leg = document.getElementById(legId);
+    if (uf) {
+      const seg = (w, c) => `<div class="bar-seg" style="width:${w}%;background:${c}"></div>`;
+      bar.innerHTML = seg(uf.pct.alimentando, 'var(--green)') + seg(uf.pct.otraAct, 'var(--yellow)') + seg(uf.pct.lineaDet, 'var(--blue)') + seg(uf.pct.detenido, 'var(--red)');
+      const lg = (c, t, v) => `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span>${t} ${fmt0(v)}%</div>`;
+      leg.innerHTML = lg('var(--green)', 'Alimentando', uf.pct.alimentando) + lg('var(--yellow)', 'Otra actividad (por priorización)', uf.pct.otraAct) + lg('var(--blue)', 'Otra actividad (por línea detenida)', uf.pct.lineaDet) + lg('var(--red)', 'Detenido', uf.pct.detenido);
+    } else { bar.innerHTML = ''; leg.innerHTML = '<div class="legend-item">Sin datos de faresín</div>'; }
+  }
+  function renderBarrasEnfardado(barId, legId, enf) {
+    const bar = document.getElementById(barId), leg = document.getElementById(legId);
+    if (enf && enf.total > 0) {
+      const p = x => (x / enf.total) * 100;
+      const seg = (w, c) => `<div class="bar-seg" style="width:${w}%;background:${c}"></div>`;
+      bar.innerHTML = seg(p(enf.resimple), 'var(--green)') + seg(p(enf.otros), 'var(--blue)') + seg(p(enf.rechazo), 'var(--gray-500)');
+      const lg = (c, t, kg) => `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span>${t} ${fmt1(kg2t(kg))} t (${fmt0(p(kg))}%)</div>`;
+      leg.innerHTML = lg('var(--green)', 'Resimple', enf.resimple) + lg('var(--blue)', 'Otros clientes', enf.otros) + lg('var(--gray-500)', 'Rechazo', enf.rechazo);
+    } else { bar.innerHTML = ''; leg.innerHTML = '<div class="legend-item">Sin datos de enfardado</div>'; }
+  }
+  function renderDetalleEnfardado(contId, enf) {
+    const c = document.getElementById(contId);
+    if (!enf || !enf.matriz || !Object.keys(enf.matriz).length) {
+      c.innerHTML = '<div class="legend-item">Sin fardos en el período</div>';
+      return;
+    }
+    const matriz = enf.matriz;
+    // ordenar materiales por total de fardos, de mayor a menor
+    const totMat = m => Object.values(matriz[m]).reduce((s, x) => s + x.fardos, 0);
+    const mats = Object.keys(matriz).sort((a, b) => totMat(b) - totMat(a));
+    const clisSet = new Set();
+    mats.forEach(m => Object.keys(matriz[m]).forEach(cl => clisSet.add(cl)));
+    const clis = [...clisSet].sort();
+    const totCli = {}; clis.forEach(cl => totCli[cl] = { fardos: 0, kg: 0 });
+    let gF = 0, gKg = 0;
+    const celda = (f, kg) => f > 0 ? `<td><div>${f}</div><div style="font-size:10px;color:var(--gray-500)">${fmt0(kg)} kg</div></td>` : '<td>—</td>';
+
+    let html = '<table class="compacta"><thead><tr><th class="kpi-name">Material</th>';
+    clis.forEach(cl => html += `<th>${cl}</th>`);
+    html += '<th class="col-total col-sep">Total</th></tr></thead><tbody>';
+    mats.forEach(m => {
+      html += `<tr><td class="kpi-name">${m}</td>`;
+      let rF = 0, rKg = 0;
+      clis.forEach(cl => {
+        const d = matriz[m][cl] || { fardos: 0, kg: 0 };
+        totCli[cl].fardos += d.fardos; totCli[cl].kg += d.kg; rF += d.fardos; rKg += d.kg;
+        html += celda(d.fardos, d.kg);
+      });
+      gF += rF; gKg += rKg;
+      html += `<td class="col-total col-sep"><div>${rF}</div><div style="font-size:10px;color:var(--gray-500)">${fmt0(rKg)} kg</div></td></tr>`;
+    });
+    // fila Total: mismo formato que las demás (sin clase group-row), solo fondo gris
+    html += '<tr style="background:var(--gray-100);font-weight:700"><td class="kpi-name" style="background:var(--gray-100)">Total</td>';
+    clis.forEach(cl => html += `<td><div>${totCli[cl].fardos}</div><div style="font-size:10px;color:var(--gray-500)">${fmt0(totCli[cl].kg)} kg</div></td>`);
+    html += `<td class="col-total col-sep"><div>${gF}</div><div style="font-size:10px;color:var(--gray-500)">${fmt0(gKg)} kg</div></td></tr></tbody></table>`;
+    c.innerHTML = html;
+  }
+
+  function renderPareto(contId, causas) {
+    const c = document.getElementById(contId);
+    if (causas && Object.keys(causas).length) {
+      const arr = Object.entries(causas).sort((a, b) => b[1] - a[1]);
+      const max = arr[0][1];
+      c.innerHTML = arr.map(([causa, min]) => `<div class="pareto-row"><div class="pareto-label">${causa}</div><div class="pareto-bar-wrap"><div class="pareto-bar" style="width:${(min / max) * 100}%"></div></div><div class="pareto-val">${minAhhmm(min)} hrs</div></div>`).join('');
+    } else { c.innerHTML = '<div class="legend-item">Sin detenciones registradas</div>'; }
+  }
+
+  function navegarSemanal(dir) {
+    const semanas = semanasNavegables();
+    const idx = semanas.indexOf(NAV.semana);
+    const nuevo = idx + dir;
+    if (nuevo >= 0 && nuevo < semanas.length) renderSemanal(semanas[nuevo]);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  //  ETAPA D — Render de la vista mensual
+  // ════════════════════════════════════════════════════════════
+  NAV.mes = null;
+
+  function mesesNavegables() {
+    return Object.keys(window.KPIS.porMes).sort();
+  }
+  function nombreMes(mesKey) {
+    const [y, m] = mesKey.split('-').map(Number);
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${meses[m - 1]} ${y}`;
+  }
+  // semanas (lunes) que pertenecen a un mes dado (por el mes de su lunes)
+  function semanasDelMes(mesKey) {
+    return semanasNavegables().filter(l => mesDe(l) === mesKey);
+  }
+
+  function renderMensual(mesKey) {
+    const K = window.KPIS, C = K.config;
+    const mes = K.porMes[mesKey];
+    if (!mes) return;
+    const meses = mesesNavegables();
+    const idx = meses.indexOf(mesKey);
+    const mes1 = idx > 0 ? K.porMes[meses[idx - 1]] : null;
+    const mes2 = idx > 1 ? K.porMes[meses[idx - 2]] : null;
+
+    document.getElementById('periodLabel').textContent = nombreMes(mesKey);
+
+    const enf = mes.enfardado, disp = mes.disponibilidad, op = mes.operacion,
+          pal = mes.paladas, uf = mes.usoFaresin;
+    const card = (label, valorHTML, metaTxt, deltaH, subTxt) => `
+      <div class="card"><div class="card-label">${label}</div>
+        <div class="card-value">${valorHTML}</div>
+        <div class="card-meta">${metaTxt}</div>${deltaH || ''}
+        ${subTxt ? `<div class="card-sub">${subTxt}</div>` : ''}</div>`;
+
+    const cSalida = card('Enfardado Resimple',
+      `<span class="dot ${dotClase(enf && enf.resimple, C.metaKg * mes.nDias)}"></span>${enf ? fmt0(kg2t(enf.resimple)) : '–'}<span class="card-unit"> t</span>`,
+      `Meta ${fmt0(kg2t(C.metaKg * mes.nDias))} t`,
+      mes1 && mes1.enfardado ? deltaHTML(enf && enf.resimple, mes1.enfardado.resimple, 'vs Mes-1') : '',
+      enf ? `Otros ${fmt1(kg2t(enf.otros))} t · Rechazo ${fmt1(kg2t(enf.rechazo))} t · Total ${fmt1(kg2t(enf.total))} t` : null);
+
+    const cDisp = card('Disponibilidad',
+      `<span class="dot ${dotClase(disp && disp.pct, C.metaDisp)}"></span>${disp ? fmt0(disp.pct) : '–'}<span class="card-unit"> %</span>`,
+      `Meta ${fmt0(C.metaDisp)}%`,
+      mes1 && mes1.disponibilidad ? deltaHTML(disp && disp.pct, mes1.disponibilidad.pct, 'vs Mes-1') : '',
+      disp ? `${minAhhmm(disp.detenidoMin)} hrs de ${minAhhmm(disp.programado)} hrs detenidos` : null);
+    const cOp = card('Arranque y Detención',
+      `<span class="dot ${op ? dotClase(op.combinado, 100) : 'dot-gray'}"></span>${op ? fmt0(op.combinado) : '–'}<span class="card-unit"> %</span>`,
+      'Meta 100% cumpl.',
+      mes1 && mes1.operacion ? deltaHTML(op && op.combinado, mes1.operacion.combinado, 'vs Mes-1') : '',
+      op ? `1ª palada ${fmt0(op.cumplePrimera)}% · última ${fmt0(op.cumpleUltima)}%` : null);
+
+    const cPal = card('Paladas',
+      `<span class="dot ${dotClase(pal && pal.paladas, C.metaPaladas * mes.nDias)}"></span>${pal ? fmt0(pal.paladas) : '–'}`,
+      `Meta ${fmt0(C.metaPaladas * mes.nDias)}`,
+      mes1 && mes1.paladas ? deltaHTML(pal && pal.paladas, mes1.paladas.paladas, 'vs Mes-1') : '');
+    const ufAlim = uf ? uf.pct.alimentando : null;
+    const cFar = card('Faresín alimentando',
+      `<span class="dot ${dotClase(ufAlim, C.metaUsoFaresin)}"></span>${uf ? fmt0(ufAlim) : '–'}<span class="card-unit"> %</span>`,
+      `Meta ${fmt0(C.metaUsoFaresin)}%`,
+      mes1 && mes1.usoFaresin ? deltaHTML(ufAlim, mes1.usoFaresin.pct.alimentando, 'vs Mes-1') : '');
+
+    document.getElementById('m_cards').innerHTML = `
+      <div class="group-block"><div class="group-head">Salida</div><div class="group-cards">${cSalida}</div></div>
+      <div class="group-block"><div class="group-head">Funcionamiento de la línea</div><div class="group-cards two">${cDisp}${cOp}</div></div>
+      <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>`;
+
+    renderTablaMensual(mesKey, mes, mes1, mes2, C);
+    renderBarrasFaresin('m_faresin_bar', 'm_faresin_leg', uf);
+    renderBarrasEnfardado('m_enf_bar', 'm_enf_leg', enf);
+    renderDetalleEnfardado('m_detalle', enf);
+    renderPareto('m_pareto', disp && disp.causas);
+
+    NAV.mes = mesKey;
+    actualizarFlechas(idx, meses.length);
+  }
+
+  function renderTablaMensual(mesKey, mes, mes1, mes2, C) {
+    const K = window.KPIS;
+    const sems = semanasDelMes(mesKey);           // lunes de cada semana del mes
+    const ss = sems.map(l => K.porSemana[l]);
+    const semNom = sems.map(l => { const v = sumarDias(l, 4); return `${l.slice(8)}–${v.slice(8)}`; });
+
+    const cel = (txt, cls) => `<td class="kpi-cell"><span class="dot ${cls}"></span>${txt}</td>`;
+    const celT = (txt, cls, sep) => `<td class="col-total ${sep || ''}"><span class="dot ${cls}"></span>${txt}</td>`;
+    const nCols = sems.length + 2 + 3; // KPI + Meta + semanas + Mes/Mes-1/Mes-2
+
+    function filaEnfardado() {
+      const cels = ss.map(s => s && s.enfardado ? cel(fmt0(kg2t(s.enfardado.resimple)), dotClase(s.enfardado.resimple, C.metaKg * (s.nDias || 5))) : '<td class="kpi-cell">–</td>').join('');
+      const tt = (p, sep) => p && p.enfardado ? celT(fmt0(kg2t(p.enfardado.resimple)), dotClase(p.enfardado.resimple, C.metaKg * (p.nDias || 20)), sep) : `<td class="col-total ${sep||''}">–</td>`;
+      return `<tr><td class="kpi-name">Enfardado Resimple (t)</td><td class="kpi-meta">16 t/día</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+    }
+    function filaPct(nombre, meta, getS, fmtv) {
+      const cels = ss.map(s => { const v = s ? getS(s) : null; return v == null ? '<td class="kpi-cell">–</td>' : cel(fmtv(v), dotClase(v, meta)); }).join('');
+      const tt = (p, sep) => { const v = p ? getS(p) : null; return v == null ? `<td class="col-total ${sep||''}">–</td>` : celT(fmtv(v), dotClase(v, meta), sep); };
+      return `<tr><td class="kpi-name">${nombre}</td><td class="kpi-meta">${meta}%</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+    }
+    function filaInfoMes(nombre, getS) {
+      const cels = ss.map(s => { const v = s ? getS(s) : null; return `<td class="kpi-cell">${v == null ? '–' : v}</td>`; }).join('');
+      const tt = (p, sep) => { const v = p ? getS(p) : null; return `<td class="col-total ${sep||''}">${v == null ? '–' : v}</td>`; };
+      return `<tr><td class="kpi-name">${nombre}</td><td class="kpi-meta">–</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+    }
+    const filaTotalEnf = () => filaInfoMes('Total enfardado (t)', p => p.enfardado ? fmt0(kg2t(p.enfardado.total)) : null);
+    const filaNFardos = () => filaInfoMes('N° de fardos totales', p => p.enfardado ? fmt0(p.enfardado.nFardos) : null);
+    function filaPaladas() {
+      const cels = ss.map(s => s && s.paladas ? cel(fmt0(s.paladas.paladas), dotClase(s.paladas.paladas, C.metaPaladas * (s.nDias || 5))) : '<td class="kpi-cell">–</td>').join('');
+      const tt = (p, sep) => p && p.paladas ? celT(fmt0(p.paladas.paladas), dotClase(p.paladas.paladas, C.metaPaladas * (p.nDias || 20)), sep) : `<td class="col-total ${sep||''}">–</td>`;
+      return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">125/día</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+    }
+
+    const html = `
+      <thead><tr>
+        <th class="kpi-name">KPI</th><th class="kpi-meta">Meta</th>
+        ${semNom.map(n => `<th>${n}</th>`).join('')}
+        <th class="col-total col-sep">Mes</th><th class="col-total">Mes-1</th><th class="col-total">Mes-2</th>
+      </tr></thead>
+      <tbody>
+        <tr class="group-row"><td colspan="${nCols}">Salida</td></tr>
+        ${filaEnfardado()}
+        ${filaTotalEnf()}
+        ${filaNFardos()}
+        <tr class="group-row"><td colspan="${nCols}">Funcionamiento de la línea</td></tr>
+        ${filaPct('Disponibilidad', C.metaDisp, s => s.disponibilidad && s.disponibilidad.pct, v => fmt0(v) + '%')}
+        ${filaPct('1ª palada', 100, s => s.operacion && s.operacion.cumplePrimera, v => fmt0(v) + '%')}
+        ${filaPct('Última palada', 100, s => s.operacion && s.operacion.cumpleUltima, v => fmt0(v) + '%')}
+        <tr class="group-row"><td colspan="${nCols}">Entrada</td></tr>
+        ${filaPaladas()}
+        ${filaPct('Faresín alimentando', C.metaUsoFaresin, s => s.usoFaresin && s.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
+      </tbody>`;
+    document.getElementById('m_tabla').innerHTML = html;
+  }
+
+  function navegarMensual(dir) {
+    const meses = mesesNavegables();
+    const idx = meses.indexOf(NAV.mes);
+    const nuevo = idx + dir;
+    if (nuevo >= 0 && nuevo < meses.length) renderMensual(meses[nuevo]);
+  }
+
+  function mostrarVista(v) {
+    const vistas = ['diario', 'semanal', 'mensual'];
+    const ids = { diario: 'vistaDiario', semanal: 'vistaSemanal', mensual: 'vistaMensual' };
+    const tabs = { diario: 'tabDiario', semanal: 'tabSemanal', mensual: 'tabMensual' };
+    vistas.forEach(x => {
+      document.getElementById(ids[x]).style.display = (x === v) ? '' : 'none';
+      document.getElementById(tabs[x]).classList.toggle('active', x === v);
+    });
+    NAV.vista = v;
+    // render de la vista al activarla
+    if (v === 'diario') {
+      const navs = fechasNavegables();
+      renderDiario(NAV.diario || navs[navs.length - 1]);
+    } else if (v === 'semanal') {
+      const sem = semanasNavegables();
+      renderSemanal(NAV.semana || sem[sem.length - 1]);
+    } else if (v === 'mensual') {
+      const m = mesesNavegables();
+      renderMensual(NAV.mes || m[m.length - 1]);
+    }
+  }
+
+  // Flechas: enrutan según la vista activa
+  function navPrev() { NAV.vista === 'mensual' ? navegarMensual(-1) : NAV.vista === 'semanal' ? navegarSemanal(-1) : navegarDiario(-1); }
+  function navNext() { NAV.vista === 'mensual' ? navegarMensual(1) : NAV.vista === 'semanal' ? navegarSemanal(1) : navegarDiario(1); }
+</script>
