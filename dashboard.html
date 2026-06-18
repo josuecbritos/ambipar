@@ -1080,7 +1080,7 @@
     // fila Total: mismo formato que las demás (sin clase group-row), solo fondo gris
     html += '<tr style="background:var(--gray-100);font-weight:700"><td class="kpi-name" style="background:var(--gray-100)">Total</td>';
     clis.forEach(cl => html += `<td><div>${totCli[cl].fardos}</div><div style="font-size:10px;color:var(--gray-500)">${fmt0(totCli[cl].kg)} kg</div></td>`);
-    html += `<td class="col-total col-sep"><div>${gF}</div><div style="font-size:10px;color:var(--gray-500)">${fmt0(gKg)} kg</div></td></tr></tbody></table>`;
+    html += `<td class="col-total col-sep" style="background:var(--gray-100)"><div>${gF}</div><div style="font-size:10px;color:var(--gray-500)">${fmt0(gKg)} kg</div></td></tr></tbody></table>`;
     c.innerHTML = html;
   }
 
