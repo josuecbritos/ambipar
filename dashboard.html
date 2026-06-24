@@ -157,6 +157,7 @@
     <div class="section">
       <div class="section-title">Detalle por día</div>
       <table id="s_tabla"></table>
+      <div class="foot-note" id="s_nota_horarios"></div>
     </div>
     <div class="charts">
       <div class="section">
@@ -1043,6 +1044,15 @@
         ${filaPct('Faresín alimentando', C.metaUsoFaresin, d => d && d.usoFaresin && d.usoFaresin.pct.alimentando, p => p.usoFaresin && p.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
       </tbody>`;
     document.getElementById('s_tabla').innerHTML = html;
+    document.getElementById('s_nota_horarios').textContent = notaHorarios(C);
+  }
+
+  // Nota con horarios teóricos de fin de operación lun-vie, desde el config
+  function notaHorarios(C) {
+    const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
+    // C.horariosFin: array lun..dom con "HH:mm" o "off"
+    const partes = dias.map((d, i) => `${d} ${C.horariosFin[i]}`);
+    return `Horario teórico de fin de operación: ${partes.join(' · ')}. Inicio de turno 9:30.`;
   }
 
   // Gráficos reutilizables
@@ -1286,3 +1296,6 @@
   function navPrev() { NAV.vista === 'mensual' ? navegarMensual(-1) : NAV.vista === 'semanal' ? navegarSemanal(-1) : navegarDiario(-1); }
   function navNext() { NAV.vista === 'mensual' ? navegarMensual(1) : NAV.vista === 'semanal' ? navegarSemanal(1) : navegarDiario(1); }
 </script>
+
+</body>
+</html>
