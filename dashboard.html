@@ -608,18 +608,37 @@
     if (finT == null) return null; // 'off'
     // minutos programados = (fin - inicio) - almuerzo fijo (no se descuenta el registro aparte)
     let programado = (finT - C.horaInicio) - C.limiteAlmuerzo;
-    // minutos detenidos: suma de duracion_min de tipo 'detencion'
+    // minutos detenidos por tipo de registro
     let detenidoMin = 0;
     const causas = {};
+    const sumar = (causa, min) => { if (min > 0) { detenidoMin += min; causas[causa] = (causas[causa] || 0) + min; } };
+
+    // Deduplicar hitos únicos (la herramienta puede registrar duplicados al recargar):
+    // de inicio_am vale el PRIMERO del día; de fin_turno vale el ÚLTIMO.
+    const horaDe = r => (r._ini ? r._ini.hora * 60 + r._ini.min : null);
+    const iniAM = regs.filter(r => (r.tipo || '').trim() === 'inicio_am' && horaDe(r) != null)
+                      .sort((a, b) => horaDe(a) - horaDe(b))[0] || null;
+    const finTurno = regs.filter(r => (r.tipo || '').trim() === 'fin_turno' && horaDe(r) != null)
+                         .sort((a, b) => horaDe(a) - horaDe(b)).slice(-1)[0] || null;
+
     regs.forEach(r => {
       const tipo = (r.tipo || '').trim();
+      const dur = parseFloat(r.duracion_min) || 0;
+      const horaLocal = horaDe(r);
+      const causa = (r.causa || '').trim() || 'Otros';   // causa registrada o 'Otros'
+
       if (tipo === 'detencion') {
-        const dur = parseFloat(r.duracion_min) || 0;
-        detenidoMin += dur;
-        const c = (r.causa || 'Otros').trim();
-        causas[c] = (causas[c] || 0) + dur;
+        sumar(causa, dur);
+      } else if (tipo === 'atraso_pm') {
+        sumar(causa, dur);
+      } else if (tipo === 'inicio_am') {
+        // solo el primer inicio_am del día cuenta como arranque tardío (sin tolerancia)
+        if (r === iniAM) sumar(causa, horaLocal - C.horaInicio);
+      } else if (tipo === 'fin_turno') {
+        // solo el último fin_turno del día cuenta como detención temprana
+        if (r === finTurno) sumar(causa, finT - horaLocal);
       }
-      // NOTA: el almuerzo NO se resta aquí; ya está descontado como bloque fijo de 60 min arriba.
+      // almuerzo: NO se cuenta aquí; ya está en el denominador como bloque fijo.
     });
     if (programado <= 0) return null;
     const dispMin = Math.max(0, programado - detenidoMin);
