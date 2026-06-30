@@ -3,1124 +3,998 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Jefe de Planta — Ambipar</title>
+<title>Separación de Cartón — Ambipar</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --green:        #00873D;
-    --green-dark:   #006830;
-    --green-light:  #e8f5ee;
-    --green-mid:    #b8dfc8;
-    --white:        #ffffff;
-    --gray-50:      #f4f5f4;
-    --gray-100:     #eaecea;
-    --gray-300:     #c8cdc8;
-    --gray-500:     #7a877a;
-    --gray-800:     #1e271e;
-    --yellow:       #f5a623;
-    --yellow-light: #fff8ee;
-    --orange:       #e07a30;
-    --red:          #c0392b;
-    --red-light:    #fdf0ee;
-    --blue:         #2b6cb0;
-    --blue-light:   #ebf4ff;
-    --shadow:       0 4px 24px rgba(0,87,40,0.13);
-    --radius:       16px;
-    --radius-sm:    8px;
+    --green: #00873D;
+    --green-dark: #006830;
+    --green-light: #e8f5ee;
+    --green-mid: #b8dfc8;
+    --white: #ffffff;
+    --gray-50: #f4f5f4;
+    --gray-100: #eaecea;
+    --gray-300: #c8cdc8;
+    --gray-500: #7a877a;
+    --gray-800: #1e271e;
+    --red: #c0392b;
+    --red-light: #fdf0ee;
+    --orange: #e67e22;
+    --orange-light: #fef5ec;
+    --shadow: 0 4px 24px rgba(0,87,40,0.13);
+    --radius: 16px;
+    --radius-sm: 8px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; height: 100dvh; }
-
+  html { height: auto; }
   body {
     font-family: 'Montserrat', sans-serif;
     background: var(--gray-50);
-    display: flex; flex-direction: column; align-items: center; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100dvh;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* ── TOPBAR ── */
+  /* TOP BAR */
   .topbar {
     width: 100%; background: #BDFE00; padding: 10px 16px;
     display: flex; align-items: center; gap: 12px; flex-shrink: 0;
   }
-  .topbar-logo  { height: 28px; }
-  .topbar-sep   { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
-  .topbar-title { font-size: 11px; font-weight: 700; color: #1e271e; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3; }
+  .topbar-logo { height: 28px; width: auto; display: block; }
+  .topbar-sep { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
+  .topbar-title {
+    font-size: 11px; font-weight: 700; color: #1e271e;
+    letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3; flex: 1;
+  }
+  .topbar-date {
+    font-family: 'Roboto Mono', monospace; font-size: 11px;
+    font-weight: 500; color: rgba(30,39,30,0.6);
+  }
 
-  /* ── CARD ── */
+  /* CARD */
   .card {
-    background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
-    width: calc(100% - 32px); max-width: 460px; margin: 12px 0; padding: 14px 18px;
-    display: flex; flex-direction: column; flex: 1; overflow: hidden;
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow); width: calc(100% - 32px); max-width: 420px;
+    margin: 10px 0;
+    padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column; gap: 0;
   }
 
-  /* ── TABS ── */
-  .tabs {
-    display: flex; gap: 0; flex-shrink: 0;
-    background: var(--gray-50); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 10px;
+  /* CAJA HOY (destacada con meta) */
+  .total-box {
+    flex: 0 0 auto;
+    background: var(--green-light); border: 1.5px solid var(--green-mid);
+    border-radius: var(--radius); padding: 9px 12px; text-align: center;
+    margin-bottom: 8px;
   }
-  .tab-btn {
-    flex: 1; padding: 8px 0; border: none; outline: none; background: none;
-    border-radius: 6px; cursor: pointer;
-    font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700;
-    color: var(--gray-500); letter-spacing: 0.04em; transition: all 0.2s;
+  .total-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--green-dark); margin-bottom: 2px;
   }
-  .tab-btn.active { background: var(--white); color: var(--green); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-
-  .tab-content { display: none; flex-direction: column; flex: 1; overflow-y: auto; overflow-x: hidden; }
-  .tab-content.active { display: flex; }
-  .tab-content::-webkit-scrollbar { display: none; }
-  .tab-content { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 4px; }
-
-  /* ── ALERTA ── */
-  .alert-box {
-    border-radius: var(--radius-sm); padding: 10px 14px;
-    display: flex; align-items: center; gap: 10px;
-    font-size: 13px; font-weight: 600; flex-shrink: 0; transition: background 0.4s, color 0.4s;
+  .total-number {
+    font-family: 'Roboto Mono', monospace; font-size: 28px; font-weight: 500;
+    color: var(--green); line-height: 1.05;
+    transition: transform 0.15s cubic-bezier(.34,1.56,.64,1);
   }
-  .alert-box.green  { background: var(--green-light); color: var(--green-dark); }
-  .alert-box.yellow { background: var(--yellow-light); color: #7a4f00; }
-  .alert-box.red    { background: var(--red-light); color: var(--red); }
-  .alert-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; animation: pulse 2s infinite; }
-  .green  .alert-dot { background: var(--green); }
-  .yellow .alert-dot { background: var(--yellow); }
-  .red    .alert-dot { background: var(--red); }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+  .total-number.bump { transform: scale(1.07); }
+  .total-unit { font-size: 13px; color: var(--green-dark); font-weight: 600; }
+  .total-sub { font-size: 9px; font-weight: 600; color: var(--gray-500); margin-top: 2px; }
+  .total-meta { font-size: 10px; font-weight: 700; color: var(--green-dark); margin-top: 3px; }
+  .total-meta .pct { font-family: 'Roboto Mono', monospace; }
 
-  /* ── KPIs ── */
-  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; margin-top: 10px; align-items: stretch; }
+  /* CAJAS SEMANA / MES */
+  .periodo-row { flex: 0 0 auto; display: flex; gap: 8px; margin-bottom: 10px; }
+  .periodo-box {
+    flex: 1; background: var(--gray-50); border: 1.5px solid var(--gray-100);
+    border-radius: var(--radius-sm); padding: 8px; text-align: center;
+  }
+  .periodo-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px;
+  }
+  .periodo-number {
+    font-family: 'Roboto Mono', monospace; font-size: 17px; font-weight: 500;
+    color: var(--gray-800); line-height: 1.1;
+  }
+  .periodo-number span { font-size: 10px; color: var(--gray-500); font-weight: 600; }
+  .periodo-number.on-meta  { color: var(--green); }
+  .periodo-number.off-meta { color: var(--red); }
+  .periodo-meta {
+    font-size: 8px; font-weight: 700; margin-top: 2px; line-height: 1.2;
+    letter-spacing: 0.02em;
+  }
+  .periodo-meta.on-meta  { color: var(--green); }
+  .periodo-meta.off-meta { color: var(--red); }
 
-  /* [6] ambos cuadros misma altura, contenido centrado */
-  .stat-box {
-    background: var(--gray-50); border-radius: var(--radius-sm);
-    padding: 10px 12px; text-align: center;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  /* FORM */
+  .form-section { flex: 0 0 auto; margin-bottom: 4px; }
+  .label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px;
   }
 
-  .stat-value {
+  /* FILA CAMIONES */
+  .camiones-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 7px 12px; background: #f0f4f8;
+    border: 1.5px solid #d8e2ec; border-radius: var(--radius-sm);
+  }
+  .camiones-info { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .camiones-icon { width: 18px; height: 18px; flex-shrink: 0; }
+  .camiones-name { font-size: 13px; font-weight: 700; color: var(--gray-800); }
+  .camiones-input {
+    width: 74px; flex-shrink: 0; text-align: center;
+    background: var(--white); border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius-sm); padding: 7px 8px;
+    font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--gray-800); outline: none; transition: border-color 0.2s;
+  }
+  .camiones-input:focus { border-color: #4a7ba6; }
+  .camiones-input::-webkit-inner-spin-button,
+  .camiones-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .camiones-input { -moz-appearance: textfield; }
+
+  /* FILA POR TIPO */
+  .tipo-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 7px 12px; background: var(--gray-50);
+    border: 1.5px solid var(--gray-100); border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+  }
+  .tipo-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .tipo-name { font-size: 13px; font-weight: 700; color: var(--gray-800); }
+  .tipo-equiv {
+    font-size: 9px; font-weight: 600; color: var(--gray-500);
     font-family: 'Roboto Mono', monospace;
-    font-size: clamp(28px, 6vw, 40px); font-weight: 500;
-    line-height: 1; margin-top: 4px;
-    /* color se aplica por JS según meta */
   }
-  .stat-value.on-meta  { color: var(--green); }
-  .stat-value.off-meta { color: var(--red); }
-
-  .meta-text { font-size: 10px; font-weight: 700; margin-top: 3px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .meta-text.on-meta  { color: var(--green); }
-  .meta-text.off-meta { color: var(--red); }
-
-  /* sub-stats: sin borde, sin margin, compacto */
-  .stat-substats { margin-top: 2px; padding-top: 0; display: flex; flex-direction: column; gap: 0; width: 100%; }
-  .stat-substats-line { font-size: 8px; font-weight: 700; line-height: 1.4; text-align: center; }
-  /* TODO el texto de fardos hereda el color de meta */
-  .stat-substats-line.meta-color.on-meta  { color: var(--green); }
-  .stat-substats-line.meta-color.off-meta { color: var(--red); }
-  .tag-otros { color: var(--orange); font-weight: 700; }
-
-  /* stat-box más compacto */
-  .stat-box { background: var(--gray-50); border-radius: var(--radius-sm); padding: 7px 10px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .stat-value { font-family: 'Roboto Mono', monospace; font-size: clamp(26px, 5.5vw, 36px); font-weight: 500; line-height: 1; margin-top: 2px; }
-  .stat-value.on-meta  { color: var(--green); }
-  .stat-value.off-meta { color: var(--red); }
-  .meta-text { font-size: 10px; font-weight: 700; margin-top: 2px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .meta-text.on-meta  { color: var(--green); }
-  .meta-text.off-meta { color: var(--red); }
-
-  /* ── CHART PALADAS ── */
-  .chart-section { flex: 0 0 auto; display: flex; flex-direction: column; margin-top: 12px; }
-  .chart-wrap {
-    height: 110px; display: flex; align-items: flex-end; gap: 4px;
-    padding-bottom: 20px; position: relative;
+  .tipo-input {
+    width: 74px; flex-shrink: 0; text-align: center;
+    background: var(--white); border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius-sm); padding: 7px 8px;
+    font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--gray-800); outline: none; transition: border-color 0.2s;
   }
-  .chart-baseline { position: absolute; bottom: 20px; left: 0; right: 0; height: 1px; background: var(--gray-100); }
-  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
-  .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.4s ease; }
-  /* [2] colores pastel originales */
-  .bar.over    { background: var(--green-mid); }
-  .bar.under   { background: #e07a5f; }
-  .bar-count   { font-size: 9px; font-weight: 700; color: var(--gray-500); margin-bottom: 2px; }
-  .bar-label   { position: absolute; bottom: -18px; font-size: 8px; font-weight: 600; color: var(--gray-500); white-space: nowrap; }
-
-  /* ── CHART FARDOS (stacked) ── */
-  .stacked-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
-  .stacked-bar { width: 100%; flex-shrink: 0; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; }
-  .stacked-seg { width: 100%; }
-  .stacked-total { font-size: 9px; font-weight: 700; color: var(--gray-500); margin-bottom: 2px; line-height: 1; }
-  .stacked-seg.resimple { background: var(--green-mid); }
-  .stacked-seg.otros    { background: #f5c48a; }
-  .stacked-seg.rechazo  { background: #e07a5f; }
-  .stacked-resimple-label { display: none; }
-
-  /* Tooltip al tocar barra de fardos */
-  .chart-tooltip {
-    position: fixed; z-index: 100;
-    background: var(--gray-800); color: var(--white);
-    border-radius: 8px; padding: 8px 12px;
-    font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: none;
-    opacity: 0; transition: opacity 0.15s; min-width: 130px;
+  .tipo-input:focus { border-color: var(--green); }
+  .tipo-input::placeholder { color: var(--gray-300); font-weight: 400; }
+  .tipo-input::-webkit-inner-spin-button,
+  .tipo-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .tipo-input { -moz-appearance: textfield; }
+  .tipo-kg {
+    width: 74px; flex-shrink: 0; text-align: right;
+    font-family: 'Roboto Mono', monospace; font-size: 12px;
+    font-weight: 500; color: var(--green);
   }
-  .chart-tooltip.visible { opacity: 1; }
-  .chart-tooltip-row { display: flex; align-items: center; gap: 6px; line-height: 1.8; }
-  .chart-tooltip-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-  .chart-tooltip-dot.resimple { background: var(--green-mid); }
-  .chart-tooltip-dot.otros    { background: #f5c48a; }
-  .chart-tooltip-dot.rechazo  { background: #e07a5f; }
-  .chart-tooltip-title { font-size: 10px; font-weight: 700; color: var(--gray-300); margin-bottom: 2px; letter-spacing: 0.04em; }
+  .tipo-kg.zero { color: var(--gray-300); }
 
-  /* ── LEYENDA ── */
-  .legend { display: flex; gap: 12px; justify-content: center; margin-top: 4px; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; color: var(--gray-500); letter-spacing: 0.04em; text-transform: uppercase; }
-  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
-  .legend-dot.resimple { background: var(--green-mid); }
-  .legend-dot.otros    { background: #f5c48a; }
-  .legend-dot.rechazo  { background: #e07a5f; }
-
-  /* ── HISTORIAL con pill ── */
-  /* [8] pill para cambiar entre paladas/fardos */
-  .history-section { flex: 0 0 auto; margin-top: 12px; }
-  .hist-pills {
-    display: flex; gap: 0; margin-bottom: 8px;
-    background: var(--gray-50); border-radius: 6px; padding: 2px;
+  /* BUTTON */
+  .section-button { flex: 0 0 auto; margin: 5px 0; }
+  .btn-register {
+    background: var(--green-light); border: 2px solid var(--green-mid);
+    border-radius: var(--radius); width: 100%; padding: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    cursor: pointer; user-select: none; outline: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
   }
-  .hist-pill-btn {
-    flex: 1; padding: 6px 0; border: none; outline: none; background: none;
-    border-radius: 5px; cursor: pointer;
-    font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700;
-    color: var(--gray-500); transition: all 0.2s;
+  .btn-register:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-register:not(:disabled):active { transform: scale(0.97); background: var(--green-mid); }
+  .btn-register.success { background: var(--green); border-color: var(--green-dark); }
+  .btn-icon {
+    width: 30px; height: 30px; background: var(--green); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; box-shadow: 0 3px 10px rgba(0,135,61,0.30);
   }
-  .hist-pill-btn.active { background: var(--white); color: var(--green); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .btn-register.success .btn-icon { background: rgba(255,255,255,0.2); box-shadow: none; }
+  .btn-text {
+    font-size: 13px; font-weight: 700; color: var(--green);
+    letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.15s;
+  }
+  .btn-register.success .btn-text { color: var(--white); }
 
-  .history-list { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; }
+  /* AVISO YA REGISTRADO */
+  .aviso-hoy {
+    flex: 0 0 auto;
+    display: none; background: var(--orange-light); border: 1.5px solid #f0c89a;
+    border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px;
+    font-size: 11px; font-weight: 600; color: var(--orange); text-align: center;
+  }
+  .aviso-hoy.active { display: block; }
+
+  /* HISTORY */
+  .history-section { display: flex; flex-direction: column; }
+  .history-list { display: flex; flex-direction: column; gap: 4px; }
   .history-item {
-    display: flex; align-items: flex-start;
-    background: var(--gray-50); border-radius: var(--radius-sm);
-    border-left: 3px solid var(--green); padding: 6px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: var(--gray-50);
+    border-radius: var(--radius-sm); border-left: 3px solid var(--green);
     animation: slideIn 0.2s ease;
   }
-  .history-item.fardo-otros    { border-left-color: var(--orange); }
-  .history-item.fardo-rechazo  { border-left-color: var(--red); }
-  .history-item.fardo-resimple { border-left-color: var(--green); }
-  @keyframes slideIn { from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)} }
-  .history-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .history-time { font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--gray-800); font-weight: 500; }
-  .history-op   { font-size: 9px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: 0.05em; }
-  .history-fardo-line { font-size: 9px; font-weight: 600; color: var(--gray-800); line-height: 1.4; word-break: break-word; }
-
-  .empty-state { text-align: center; color: var(--gray-500); font-size: 11px; font-weight: 600; padding: 10px 0; }
-
-  /* ── HISTÓRICO ── */
-  .hist-block { border-radius: var(--radius-sm); padding: 8px; margin-bottom: 8px; flex-shrink: 0; }
-  .hist-block.semana { background: var(--green-light); }
-  .hist-block.mes    { background: var(--blue-light); }
-  .hist-block-title { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
-  .hist-block.semana .hist-block-title { color: var(--green-dark); }
-  .hist-block.mes    .hist-block-title { color: var(--blue); }
-
-  .hist-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .hist-card { background: var(--white); border-radius: 6px; padding: 8px 6px; text-align: center; }
-  .hist-card-label { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px; }
-  .hist-card-value { font-family: 'Roboto Mono', monospace; font-size: 18px; font-weight: 500; line-height: 1.2; }
-  .hist-block.semana .hist-card-value { color: var(--green); }
-  .hist-block.mes    .hist-card-value { color: var(--blue); }
-  .hist-card-meta { font-size: 8px; font-weight: 600; color: var(--gray-500); margin-top: 2px; line-height: 1.2; }
-
-  /* Pills rango histórico */
-  .pills {
-    display: flex; gap: 0; flex-shrink: 0; margin-bottom: 8px;
-    background: var(--gray-50); border-radius: 6px; padding: 2px;
+  .history-item.hoy { background: var(--green-light); border-left-color: var(--green-dark); }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
-  .pill-btn {
-    flex: 1; padding: 6px 2px; border: none; outline: none; background: none;
-    border-radius: 5px; cursor: pointer;
+  .history-left { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .history-fecha { font-size: 13px; font-weight: 700; color: var(--gray-800); }
+  .history-badge {
+    display: inline-block; font-size: 8px; font-weight: 800; letter-spacing: 0.08em;
+    color: var(--white); background: var(--green); border-radius: 4px;
+    padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+  }
+  .history-fecha-day {
+    font-size: 10px; font-weight: 600; color: var(--gray-500);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .history-right { display: flex; align-items: center; gap: 10px; }
+  .history-kg {
+    font-family: 'Roboto Mono', monospace; font-size: 15px;
+    font-weight: 500; color: var(--green); white-space: nowrap;
+  }
+  .history-kg span { font-size: 10px; color: var(--gray-500); font-weight: 600; }
+  .btn-editar {
+    background: var(--white); border: 1.5px solid var(--green-mid);
+    color: var(--green-dark); border-radius: 6px; padding: 5px 9px;
     font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700;
-    color: var(--gray-500); letter-spacing: 0.02em; transition: all 0.2s; white-space: nowrap;
+    letter-spacing: 0.03em; cursor: pointer; outline: none; flex-shrink: 0;
+    transition: background 0.15s;
   }
-  .pill-btn.active { background: var(--white); color: var(--green); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-
-  .hist-domain { margin-top: 10px; }
-  .hist-domain-title { font-size: 11px; font-weight: 700; color: var(--gray-800); letter-spacing: 0.04em; margin-bottom: 6px; }
-
-  .hist-chart-wrap {
-    height: 130px; display: flex; align-items: flex-end; gap: 3px;
-    padding-bottom: 20px; position: relative;
+  .btn-editar:active { background: var(--green-mid); }
+  .pending-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--orange);
+    flex-shrink: 0; animation: pulse 1s infinite;
   }
-  .meta-line {
-    position: absolute; left: 0; right: 0;
-    border-top: 2px dashed var(--green); opacity: 0.7; pointer-events: none; z-index: 10;
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .empty-state {
+    text-align: center; color: var(--gray-500); font-size: 11px;
+    font-weight: 600; padding: 24px 0; letter-spacing: 0.03em;
   }
-  .meta-line-label { position: absolute; right: 2px; top: -12px; font-size: 7px; font-weight: 700; color: var(--green); }
 
-  /* ── SKELETON ── */
+  /* SKELETON */
   .skeleton {
     background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
     background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px;
   }
-  .skeleton-stat  { height: 40px; margin-top: 4px; width: 80%; }
-  .skeleton-alert { height: 36px; display: inline-block; width: 180px; }
-  .skeleton-item  { height: 44px; border-radius: var(--radius-sm); }
-  @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+  .skeleton-item { height: 48px; border-radius: var(--radius-sm); margin-bottom: 5px; }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 
-  /* ── STATUS ── */
-  .status-wrap { flex: 0 0 auto; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; }
-  .status-bar  { font-size: 10px; font-weight: 600; color: var(--gray-500); }
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 100; align-items: center; justify-content: center; padding: 20px;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25); padding: 22px 20px;
+    width: 100%; max-width: 340px; text-align: center;
+    max-height: calc(100dvh - 40px); overflow-y: auto;
+  }
+  .modal-title { font-size: 15px; font-weight: 800; color: var(--gray-800); margin-bottom: 4px; }
+  .modal-sub { font-size: 11px; font-weight: 600; color: var(--gray-500); margin-bottom: 14px; }
+  .modal-resumen {
+    background: var(--gray-50); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-bottom: 6px;
+  }
+  .modal-line {
+    display: flex; align-items: center;
+    padding: 4px 0; font-size: 13px; gap: 8px;
+  }
+  .modal-line + .modal-line { border-top: 1px solid var(--gray-100); }
+  .modal-line-tipo { font-weight: 700; color: var(--gray-800); flex: 1; text-align: left; min-width: 0; }
+  .modal-line-cant { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--gray-500); width: 52px; text-align: center; flex-shrink: 0; }
+  .modal-line-kg { font-family: 'Roboto Mono', monospace; font-weight: 500; color: var(--green); width: 80px; text-align: right; flex-shrink: 0; }
+  .modal-total {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; margin-bottom: 16px;
+    background: var(--green-light); border: 1.5px solid var(--green-mid);
+    border-radius: var(--radius-sm);
+  }
+  .modal-total-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--green-dark);
+  }
+  .modal-total-kg {
+    font-family: 'Roboto Mono', monospace; font-size: 18px;
+    font-weight: 500; color: var(--green);
+  }
+  .modal-buttons { display: flex; gap: 10px; }
+  .modal-btn {
+    flex: 1; padding: 12px; border-radius: var(--radius-sm);
+    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; border: none; outline: none; transition: opacity 0.15s;
+  }
+  .modal-btn:active { opacity: 0.7; }
+  .modal-btn-cancel { background: var(--gray-100); color: var(--gray-500); }
+  .modal-btn-confirm { background: var(--green); color: var(--white); }
+
+  /* CAMPOS DEL MODAL DE EDICIÓN */
+  .edit-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0;
+  }
+  .edit-row + .edit-row { border-top: 1px solid var(--gray-100); }
+  .edit-tipo { flex: 1; text-align: left; font-weight: 700; font-size: 13px; color: var(--gray-800); }
+  .edit-input {
+    width: 70px; flex-shrink: 0; text-align: center;
+    background: var(--white); border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius-sm); padding: 7px 6px;
+    font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--gray-800); outline: none;
+  }
+  .edit-input:focus { border-color: var(--green); }
+  .edit-input::-webkit-inner-spin-button,
+  .edit-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .edit-input { -moz-appearance: textfield; }
+  .edit-kg {
+    width: 78px; flex-shrink: 0; text-align: right;
+    font-family: 'Roboto Mono', monospace; font-size: 12px; font-weight: 500; color: var(--green);
+  }
+  .edit-kg.zero { color: var(--gray-300); }
+
+  /* STATUS */
+  .status-wrap { flex: 0 0 auto; min-height: 18px; }
+  .status-bar {
+    text-align: center; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.04em; padding: 2px 0; min-height: 16px; color: var(--gray-500);
+  }
+  .status-bar.ok { color: var(--green); }
   .status-bar.error { color: var(--red); }
-  .btn-refresh { background: none; border: none; padding: 4px; cursor: pointer; color: var(--gray-500); display: flex; align-items: center; transition: color 0.15s; }
-  .btn-refresh:active { color: var(--green); }
-  .btn-refresh.spinning svg { animation: spin 0.6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
+<!-- TOP BAR -->
 <div class="topbar">
   <img class="topbar-logo" src="https://raw.githubusercontent.com/josuecbritos/ambipar/main/paladas/ambipar-logo.png" alt="Ambipar">
   <div class="topbar-sep"></div>
-  <div class="topbar-title">Vista Jefe de Planta<br>Clasificación Giri</div>
+  <div class="topbar-title">Separación de Cartón<br>Clasificación Giri</div>
+  <div class="topbar-date" id="topbarDate"></div>
 </div>
 
 <div class="card">
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('hoy')">Hoy</button>
-    <button class="tab-btn"        onclick="switchTab('historico')">Histórico</button>
+  <!-- HOY (con meta) -->
+  <div class="total-box">
+    <div class="total-label">Total Cartón Hoy</div>
+    <div class="total-number" id="totalKg">0 <span class="total-unit">kg</span></div>
+    <div class="total-sub" id="totalSub">Ingrese las cantidades del día</div>
+    <div class="total-meta" id="totalMeta"></div>
   </div>
 
-  <!-- ══════════════ TAB HOY ══════════════ -->
-  <div class="tab-content active" id="tabHoy">
-
-    <!-- Alerta paladas -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div class="label" style="margin-bottom:0;">Última palada</div>
-      <button class="btn-refresh" id="btnRefresh" onclick="refrescar()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5"/>
-          <path stroke-linecap="round" stroke-linejoin="round" d="M20.49 9A9 9 0 0 0 5.64 5.64L4 4m16 16l-1.64-1.64A9 9 0 0 1 3.51 15"/>
-        </svg>
-      </button>
+  <!-- SEMANA / MES -->
+  <div class="periodo-row">
+    <div class="periodo-box">
+      <div class="periodo-label">Total Semana</div>
+      <div class="periodo-number" id="totalSemana">0 <span>kg</span></div>
+      <div class="periodo-meta" id="metaSemana"></div>
     </div>
-    <div class="alert-box green" id="alertBox">
-      <div class="alert-dot"></div>
-      <span id="alertText"><span class="skeleton skeleton-alert"></span></span>
+    <div class="periodo-box">
+      <div class="periodo-label">Total Mes</div>
+      <div class="periodo-number" id="totalMes">0 <span>kg</span></div>
+      <div class="periodo-meta" id="metaMes"></div>
     </div>
-
-    <!-- KPIs -->
-    <div class="stats-row">
-      <div class="stat-box">
-        <div class="label">Paladas</div>
-        <div class="stat-value off-meta" id="statPaladas"><div class="skeleton skeleton-stat"></div></div>
-        <div class="meta-text off-meta" id="metaPaladas"></div>
-        <div class="stat-substats">
-          <div class="stat-substats-line" id="statArranqueLine" style="color:var(--gray-500);">Arranque —</div>
-        </div>
-      </div>
-      <div class="stat-box">
-        <div class="label" style="font-size:8.5px;white-space:nowrap;">Ton Enfardadas Resimple</div>
-        <div class="stat-value off-meta" id="statTonResimple"><div class="skeleton skeleton-stat"></div></div>
-        <div class="meta-text off-meta" id="metaTonResimple"></div>
-        <div class="stat-substats">
-          <div class="stat-substats-line meta-color off-meta" id="statFardosLine">— fardos</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gráfico paladas por hora -->
-    <div class="chart-section">
-      <div class="label">Paladas por hora</div>
-      <div class="chart-wrap" id="chartPaladas"><div class="chart-baseline"></div></div>
-    </div>
-
-    <!-- Gráfico ton enfardadas por hora -->
-    <div class="chart-section">
-      <div class="label">Ton enfardadas por hora</div>
-      <div class="chart-wrap" id="chartFardos" style="padding-top:14px;"><div class="chart-baseline"></div></div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot resimple"></div>Resimple</div>
-        <div class="legend-item"><div class="legend-dot otros"></div>Otros</div>
-        <div class="legend-item"><div class="legend-dot rechazo"></div>Rechazo</div>
-      </div>
-    </div>
-
-    <!-- Historial con pill -->
-    <div class="history-section">
-      <div class="hist-pills">
-        <button class="hist-pill-btn active" data-hpill="paladas" onclick="switchHistPill('paladas')">Paladas</button>
-        <button class="hist-pill-btn"        data-hpill="fardos"  onclick="switchHistPill('fardos')">Fardos</button>
-      </div>
-      <div class="history-list" id="histLista">
-        <div class="skeleton skeleton-item"></div>
-        <div class="skeleton skeleton-item"></div>
-        <div class="skeleton skeleton-item"></div>
-      </div>
-    </div>
-
-  </div><!-- /tabHoy -->
-
-  <!-- ══════════════ TAB HISTÓRICO ══════════════ -->
-  <div class="tab-content" id="tabHistorico">
-
-    <!-- Semana actual -->
-    <div class="hist-block semana">
-      <div class="hist-block-title">Semana actual</div>
-      <div class="hist-cards">
-        <div class="hist-card">
-          <div class="hist-card-label">Total paladas</div>
-          <div class="hist-card-value" id="hSemPalTotal">—</div>
-          <div class="hist-card-meta"  id="hSemPalTotalMeta"></div>
-        </div>
-        <div class="hist-card">
-          <div class="hist-card-label">Total ton Resimple</div>
-          <div class="hist-card-value" id="hSemKgTotal">—</div>
-          <div class="hist-card-meta"  id="hSemKgTotalMeta"></div>
-        </div>
-        <div class="hist-card">
-          <div class="hist-card-label">Arranque a tiempo</div>
-          <div class="hist-card-value" id="hSemArr">—</div>
-          <div class="hist-card-meta"  id="hSemArrMeta"></div>
-        </div>
-        <div class="hist-card">
-          <div class="hist-card-label">Total ton Cartón</div>
-          <div class="hist-card-value" id="hSemCarton">—</div>
-          <div class="hist-card-meta"  id="hSemCartonMeta"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mes actual -->
-    <div class="hist-block mes">
-      <div class="hist-block-title" id="hMesTitulo">Mes actual</div>
-      <div class="hist-cards">
-        <div class="hist-card">
-          <div class="hist-card-label">Total paladas</div>
-          <div class="hist-card-value" id="hMesPalTotal">—</div>
-          <div class="hist-card-meta"  id="hMesPalTotalMeta"></div>
-        </div>
-        <div class="hist-card">
-          <div class="hist-card-label">Total ton Resimple</div>
-          <div class="hist-card-value" id="hMesKgTotal">—</div>
-          <div class="hist-card-meta"  id="hMesKgTotalMeta"></div>
-        </div>
-        <div class="hist-card">
-          <div class="hist-card-label">Arranque a tiempo</div>
-          <div class="hist-card-value" id="hMesArr">—</div>
-          <div class="hist-card-meta"  id="hMesArrMeta"></div>
-        </div>
-        <div class="hist-card">
-          <div class="hist-card-label">Total ton Cartón</div>
-          <div class="hist-card-value" id="hMesCarton">—</div>
-          <div class="hist-card-meta"  id="hMesCartonMeta"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Pills rango -->
-    <div class="pills">
-      <button class="pill-btn active" data-pill="semana"  onclick="switchPill('semana')">Sem. actual</button>
-      <button class="pill-btn"        data-pill="14dias"  onclick="switchPill('14dias')">14 días</button>
-      <button class="pill-btn"        data-pill="semanal" onclick="switchPill('semanal')">Semanal</button>
-      <button class="pill-btn"        data-pill="mensual" onclick="switchPill('mensual')">Mensual</button>
-    </div>
-
-    <!-- Gráfico paladas histórico -->
-    <div class="hist-domain">
-      <div class="hist-domain-title">Paladas</div>
-      <div class="hist-chart-wrap" id="histChartPaladas"><div class="chart-baseline"></div></div>
-    </div>
-
-    <!-- Gráfico ton enfardadas histórico -->
-    <div class="hist-domain">
-      <div class="hist-domain-title">Ton enfardadas</div>
-      <div class="hist-chart-wrap" id="histChartFardos"><div class="chart-baseline"></div></div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot resimple"></div>Resimple</div>
-        <div class="legend-item"><div class="legend-dot otros"></div>Otros</div>
-        <div class="legend-item"><div class="legend-dot rechazo"></div>Rechazo</div>
-      </div>
-    </div>
-
-  </div><!-- /tabHistorico -->
-
-  <div class="status-wrap">
-    <div class="status-bar" id="statusBar"></div>
-    <div style="font-size:9px;color:var(--gray-300);font-weight:600;" id="statusTime"></div>
   </div>
 
-</div><!-- /card -->
+  <!-- FORM -->
+  <div class="form-section">
+    <div class="label">Camiones recibidos en andén</div>
+    <div id="camionesContainer">
+      <div class="skeleton skeleton-item"></div>
+    </div>
 
-<div class="chart-tooltip" id="chartTooltip"></div>
+    <div class="label" style="margin-top:10px;">Cantidades del día</div>
+    <div id="tiposContainer">
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+    </div>
+  </div>
+
+  <!-- AVISO -->
+  <div class="aviso-hoy" id="avisoHoy">⚠ Ya existe un registro para hoy</div>
+
+  <!-- BUTTON -->
+  <div class="section-button">
+    <button class="btn-register" id="btnRegistrar" onclick="registrar()">
+      <div class="btn-icon">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      <div class="btn-text">Registrar Día</div>
+    </button>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-section">
+    <div class="label">Últimos días</div>
+    <div class="history-list" id="historyList">
+      <div class="skeleton skeleton-item"></div>
+      <div class="skeleton skeleton-item"></div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-wrap"><div class="status-bar" id="statusBar"></div></div>
+
+</div>
 
 <script>
-// ═══════════════════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbx7x65j3SEx_mNOyGM3H5UJQjzYFeNeNEpW_IEFsAbCTSedlscJhTfhramPBTYEhKw/exec";
-const TOKEN   = "paladas2026";
-const CLIENTE_META     = "Resimple";
-const MATERIAL_RECHAZO = "Rechazo";
-// Arranque a tiempo: 1ª palada del día hasta esta hora (hora_inicio_turno 9:30
-// + tolerancia 5 min, igual criterio que el dashboard). Verde si cumple.
-const ARRANQUE_LIMITE_MIN = 9 * 60 + 35; // 09:35
+  // ══════════════════════════════════════════════════════════
+  //  CONFIGURACIÓN — Reemplaza con la URL de TU Apps Script
+  // ══════════════════════════════════════════════════════════
+  const API_URL = "https://script.google.com/macros/s/AKfycbycMUnAFBX-wV4L70q9FYm_zF838eN0KZRstZZP5_pTVHg2NC5jQzLagm5fZEP_GUHk/exec";
+  const TOKEN   = "carton2026";
 
-const MESES_ES   = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const DIAS_CORTO = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"];
+  // Cuántos días mostrar en "Últimos días"
+  const DIAS_HISTORIAL = 5;
 
-// ─── Estado ───
-let paladas = [], fardos = [], carton = [];
-let metaPaladas = 125, metaKgResimple = 16000, metaCarton = 0;
-let paladasPorDia = {}, fardosPorDia = {}, cartonPorDia = {}, primeraPaladaPorDia = {};
-let tabActual   = "hoy";
-let pillActual  = "semana";
-let histPillActual = "paladas"; // [8] pill historial hoy
-let palHoyCache = [], farHoyCache = [];
+  const DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
-cargarDatos();
-setInterval(cargarDatos, 30000);
+  // Tipo reservado: conteo de unidades, NO suma kg
+  const TIPO_CAMIONES = "Camiones";
 
-// ═══════════════════════════════════════════════════
-//  API
-// ═══════════════════════════════════════════════════
-async function cargarDatos() {
-  try {
-    const res  = await fetch(`${API_URL}?token=${TOKEN}`, { redirect: "follow" });
-    const data = await res.json();
-    if (data.error) { setStatus("Error: " + data.error); return; }
+  let config = [];        // [{ tipo, kg_unit }]
+  let registros = [];     // [{ fecha, tipo, cantidad, kg }]
+  let metaDiaria = 0;
+  let yaRegistradoHoy = false;
+  let modoEdicion = false;
+  let guardandoDia = null; // fecha "YYYY-MM-DD" que se está guardando, o null
 
-    paladas        = (data.paladas || []).filter(r => !r.tipo || r.tipo === "palada");
-    fardos         = data.fardos  || [];
-    carton         = data.carton  || [];
-    metaPaladas    = Number(data.meta_paladas)     || 125;
-    metaKgResimple = Number(data.meta_kg_resimple) || 16000;
-    metaCarton     = Number(data.meta_carton)      || 0;
-
-    paladasPorDia = {};
-    primeraPaladaPorDia = {};
-    paladas.forEach(r => {
-      const fecha = new Date(r.timestamp);
-      const k = fKey(fecha);
-      paladasPorDia[k] = (paladasPorDia[k] || 0) + 1;
-      // Guardar el timestamp de la primera palada (más temprana) de cada día
-      if (!primeraPaladaPorDia[k] || fecha < primeraPaladaPorDia[k]) {
-        primeraPaladaPorDia[k] = fecha;
-      }
-    });
-
-    fardosPorDia = {};
-    fardos.forEach(r => {
-      const k   = fKey(new Date(r.timestamp));
-      const cat = categoriaFardo(r);
-      if (!fardosPorDia[k]) fardosPorDia[k] = { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
-      fardosPorDia[k][cat] += Number(r.peso_kg) || 0;
-      if (cat === "resimple") fardosPorDia[k].nResimple++;
-      else if (cat === "otros") fardosPorDia[k].nOtros++;
-      else if (cat === "rechazo") fardosPorDia[k].nRechazo++;
-    });
-
-    // Cartón: registro diario. La columna "Fecha" ya viene como día-Chile
-    // ("YYYY-MM-DD"); se usa como clave directa. Tipo "Camiones" no suma kg.
-    cartonPorDia = {};
-    carton.forEach(r => {
-      const k = normFechaCarton(r.Fecha);
-      if (!k) return;
-      const tipo = String(r.Tipo || "").trim().toLowerCase();
-      if (!cartonPorDia[k]) cartonPorDia[k] = { kg: 0, camiones: 0 };
-      if (tipo === "camiones") cartonPorDia[k].camiones += Number(r.Cantidad) || 0;
-      else cartonPorDia[k].kg += Number(r.Kg) || 0;
-    });
-
-    actualizarHoy();
-    if (tabActual === "historico") renderHistorico();
-    setStatus("", true);
-  } catch (e) {
-    setStatus("Sin conexión");
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════════════════
-function categoriaFardo(r) {
-  if (r.material === MATERIAL_RECHAZO) return "rechazo";
-  if (r.cliente  === CLIENTE_META)     return "resimple";
-  return "otros";
-}
-function fKey(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
-// Normaliza la Fecha de cartón a "YYYY-MM-DD". La hoja ya guarda el día Chile;
-// si llegara un ISO, se toma su parte de fecha local.
-function normFechaCarton(v) {
-  if (!v) return null;
-  const s = String(v).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  const d = new Date(s);
-  return isNaN(d) ? null : fKey(d);
-}
-function pad(n)  { return String(n).padStart(2,"0"); }
-function esHoy(ts)     { return new Date(ts).toDateString() === new Date().toDateString(); }
-function esLaboral(d)  { const g = d.getDay(); return g >= 1 && g <= 5; }
-function minutosDesde(ts) { return Math.floor((Date.now() - new Date(ts).getTime()) / 60000); }
-function formatN(n)    { return Number(n).toLocaleString("es-CL"); }
-// [1] Conversión kg → ton con 2 decimales
-function formatTon(kg) { return (kg / 1000).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function fmtHora(ts)   { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-function getLunes(d) {
-  const r = new Date(d), dow = r.getDay();
-  r.setDate(r.getDate() + (dow === 0 ? -6 : 1 - dow));
-  r.setHours(0,0,0,0); return r;
-}
-function diasLaboralesMes(y, m) {
-  let c = 0, last = new Date(y, m+1, 0).getDate();
-  for (let d = 1; d <= last; d++) if (esLaboral(new Date(y, m, d))) c++;
-  return c;
-}
-function pc(v, meta) { return meta > 0 ? Math.round(v / meta * 100) : 0; }
-
-// ─── Aplica color verde/rojo según si cumple meta ───
-function setMetaColor(elValue, elMeta, elResimpleCount, cumple) {
-  const cls = cumple ? "on-meta" : "off-meta";
-  [elValue, elMeta].forEach(el => {
-    if (!el) return;
-    el.classList.remove("on-meta","off-meta");
-    el.classList.add(cls);
-  });
-  if (elResimpleCount) {
-    elResimpleCount.classList.remove("on-meta","off-meta");
-    elResimpleCount.classList.add(cls);
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  TAB / PILL SWITCH
-// ═══════════════════════════════════════════════════
-function switchTab(tab) {
-  tabActual = tab;
-  document.querySelectorAll(".tab-btn").forEach((b,i) =>
-    b.classList.toggle("active", (i===0 && tab==="hoy") || (i===1 && tab==="historico")));
-  document.getElementById("tabHoy").classList.toggle("active", tab === "hoy");
-  document.getElementById("tabHistorico").classList.toggle("active", tab === "historico");
-  if (tab === "historico") renderHistorico();
-}
-function switchPill(pill) {
-  pillActual = pill;
-  document.querySelectorAll(".pill-btn").forEach(b =>
-    b.classList.toggle("active", b.dataset.pill === pill));
-  renderHistChart("paladas");
-  renderHistChart("fardos");
-}
-// [8] pill del historial de hoy
-function switchHistPill(pill) {
-  histPillActual = pill;
-  document.querySelectorAll(".hist-pill-btn").forEach(b =>
-    b.classList.toggle("active", b.dataset.hpill === pill));
-  renderHistorialActivo();
-}
-function renderHistorialActivo() {
-  if (histPillActual === "paladas") renderHistPaladas(palHoyCache);
-  else renderHistFardos(farHoyCache);
-}
-
-// ═══════════════════════════════════════════════════
-//  TAB HOY
-// ═══════════════════════════════════════════════════
-function actualizarHoy() {
-  palHoyCache = paladas.filter(r => esHoy(r.timestamp)).sort((a,b) => new Date(a.timestamp)-new Date(b.timestamp));
-  farHoyCache = fardos.filter(r  => esHoy(r.timestamp)).sort((a,b) => new Date(a.timestamp)-new Date(b.timestamp));
-
-  // Alerta paladas
-  const ab = document.getElementById("alertBox"), at = document.getElementById("alertText");
-  if (palHoyCache.length === 0) {
-    ab.className = "alert-box green"; at.textContent = "Sin paladas hoy";
-  } else {
-    const u = palHoyCache[palHoyCache.length-1], m = minutosDesde(u.timestamp);
-    let cls, txt;
-    if (m < 10)      { cls = "green";  txt = `Hace ${m} min — ${u.operador}`; }
-    else if (m < 20) { cls = "yellow"; txt = `Sin actividad hace ${m} min`; }
-    else {
-      cls = "red";
-      const h = Math.floor(m/60), r = m%60;
-      txt = h > 0 ? `Sin actividad hace ${h}h ${r}min` : `Sin actividad hace ${m} min`;
-    }
-    ab.className = `alert-box ${cls}`; at.textContent = txt;
-  }
-
-  // [4] KPI Paladas — color según meta
-  const nPal = palHoyCache.length;
-  const palCumple = nPal >= metaPaladas;
-  document.getElementById("statPaladas").textContent = nPal;
-  document.getElementById("metaPaladas").textContent = `${((nPal/metaPaladas)*100).toFixed(1)}% — Meta: ${metaPaladas}`;
-  setMetaColor(
-    document.getElementById("statPaladas"),
-    document.getElementById("metaPaladas"),
-    null, palCumple
-  );
-
-  // Arranque — hora de la 1ª palada del día + cumplimiento (verde ≤ 09:35)
-  const arrEl = document.getElementById("statArranqueLine");
-  if (palHoyCache.length === 0) {
-    arrEl.textContent = "Arranque —";
-    arrEl.style.color = "var(--gray-500)";
-  } else {
-    const prim = new Date(palHoyCache[0].timestamp);
-    const minDia = prim.getHours() * 60 + prim.getMinutes();
-    const aTiempo = minDia <= ARRANQUE_LIMITE_MIN;
-    arrEl.textContent = `Arranque ${fmtHora(palHoyCache[0].timestamp)} ${aTiempo ? "✓" : "✗"}`;
-    arrEl.style.color = aTiempo ? "var(--green)" : "var(--red)";
-  }
-
-  // [1][4] KPI Ton Resimple — color según meta
-  const hoyKey = fKey(new Date());
-  const dHoy   = fardosPorDia[hoyKey] || { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
-  const kgRes  = dHoy.resimple;
-  const resCumple = kgRes >= metaKgResimple;
-
-  document.getElementById("statTonResimple").textContent = formatTon(kgRes);
-  document.getElementById("metaTonResimple").textContent = `${((kgRes/metaKgResimple)*100).toFixed(1)}% — Meta: ${Math.round(metaKgResimple/1000)}`;
-  // [3] mismo color para el contador de fardos
-  document.getElementById("statFardosLine").textContent = `${dHoy.nResimple} fardos`;
-  const lineEl = document.getElementById("statFardosLine");
-  lineEl.classList.remove("on-meta","off-meta");
-  lineEl.classList.add(resCumple ? "on-meta" : "off-meta");
-  setMetaColor(
-    document.getElementById("statTonResimple"),
-    document.getElementById("metaTonResimple"),
-    null,
-    resCumple
-  );
-
-  renderChartPaladas(palHoyCache);
-  renderChartFardos(farHoyCache);
-  renderHistorialActivo();
-}
-
-// ── Calcula el rango de horas compartido entre ambos gráficos ──
-function rangoHorasHoy(palHoy, farHoy) {
-  const ahora = new Date(), hA = ahora.getHours();
-  let hI = 9;
-  const todos = [...palHoy, ...farHoy];
-  if (todos.length > 0) {
-    const hMin = Math.min(...todos.map(r => new Date(r.timestamp).getHours()));
-    if (hMin < hI) hI = hMin;
-  }
-  const hrs = []; for (let h = hI; h <= hA; h++) hrs.push(h);
-  return hrs;
-}
-
-// ── Gráfico paladas (horas alineadas con fardos) ──
-function renderChartPaladas(palHoy) {
-  const w = document.getElementById("chartPaladas");
-  const hrs = rangoHorasHoy(palHoy, farHoyCache);
-  if (!hrs.length) { w.innerHTML = '<div class="chart-baseline"></div>'; return; }
-  const conteo = {}; hrs.forEach(h => conteo[h] = 0);
-  palHoy.forEach(r => { const h = new Date(r.timestamp).getHours(); if (conteo[h]!==undefined) conteo[h]++; });
-  const mx = Math.max(...hrs.map(h => conteo[h]), 1);
-  w.innerHTML = '<div class="chart-baseline"></div>' + hrs.map(h => {
-    const v = conteo[h], p = (v/mx)*100;
-    const cls = v > 0 ? "over" : "under";
-    return `<div class="bar-col">
-      <div class="bar-count">${v||''}</div>
-      <div class="bar ${cls}" style="height:${v>0?Math.max(p,4):0}%"></div>
-      <div class="bar-label">${pad(h)}h</div>
-    </div>`;
-  }).join("");
-}
-
-// ── Gráfico fardos (horas alineadas, tooltip al tocar) ──
-function renderChartFardos(farHoy) {
-  const w = document.getElementById("chartFardos");
-  const hrs = rangoHorasHoy(palHoyCache, farHoy);
-  if (!hrs.length) { w.innerHTML = '<div class="chart-baseline"></div>'; return; }
-
-  const conteo = {};
-  hrs.forEach(h => conteo[h] = { resimple: 0, otros: 0, rechazo: 0, nRes: 0, nOtros: 0, nRec: 0 });
-  farHoy.forEach(r => {
-    const h = new Date(r.timestamp).getHours();
-    if (conteo[h] !== undefined) {
-      const cat = categoriaFardo(r);
-      conteo[h][cat] += Number(r.peso_kg) || 0;
-      if (cat === "resimple") conteo[h].nRes++;
-      else if (cat === "otros") conteo[h].nOtros++;
-      else if (cat === "rechazo") conteo[h].nRec++;
-    }
+  window.addEventListener("DOMContentLoaded", () => {
+    mostrarFechaHoy();
+    cargarDatos();
   });
 
-  const totales = hrs.map(h => conteo[h].resimple + conteo[h].otros + conteo[h].rechazo);
-  const mx = Math.max(...totales, 1);
+  function mostrarFechaHoy() {
+    const h = new Date();
+    document.getElementById("topbarDate").textContent =
+      `${String(h.getDate()).padStart(2,"0")}/${String(h.getMonth()+1).padStart(2,"0")}/${h.getFullYear()}`;
+  }
 
-  w.innerHTML = '<div class="chart-baseline"></div>' + hrs.map((h, i) => {
-    const c = conteo[h], total = totales[i];
-    const barH = Math.max((total/mx)*100, total>0?4:0);
-    const seg = (kg) => total > 0 ? (kg/total)*100 : 0;
-    return `<div class="stacked-col"
-        data-hora="${h}" data-res="${c.resimple}" data-otros="${c.otros}" data-rec="${c.rechazo}"
-        data-nres="${c.nRes}" data-notros="${c.nOtros}" data-nrec="${c.nRec}"
-        ontouchstart="showTooltip(event,this)" onclick="showTooltip(event,this)">
-      <div class="stacked-total">${total > 0 ? formatTon(total) : ''}</div>
-      <div class="stacked-bar" style="height:${barH}%">
-        <div class="stacked-seg resimple" style="height:${seg(c.resimple)}%"></div>
-        <div class="stacked-seg otros"    style="height:${seg(c.otros)}%"></div>
-        <div class="stacked-seg rechazo"  style="height:${seg(c.rechazo)}%"></div>
-      </div>
-      <div class="bar-label">${pad(h)}h</div>
-    </div>`;
-  }).join("");
-}
+  function hoyISO() {
+    const h = new Date();
+    return h.getFullYear() + "-" + String(h.getMonth()+1).padStart(2,"0") + "-" + String(h.getDate()).padStart(2,"0");
+  }
 
-// ── [8] Historial con pill ──
-function renderHistPaladas(hoy) {
-  const el = document.getElementById("histLista");
-  const items = hoy.slice().reverse();
-  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin paladas hoy</div>'; return; }
-  el.innerHTML = items.map(r => `
-    <div class="history-item">
-      <div class="history-info">
-        <span class="history-time">${fmtHora(r.timestamp)}</span>
-        <span class="history-op">${r.operador || ''}</span>
-      </div>
-    </div>`).join("");
-}
-function renderHistFardos(hoy) {
-  const el = document.getElementById("histLista");
-  const items = hoy.slice().reverse();
-  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin fardos enfardados hoy</div>'; return; }
-  el.innerHTML = items.map(r => {
-    const cat = categoriaFardo(r);
-    return `<div class="history-item fardo-${cat}">
-      <div class="history-info">
-        <span class="history-time">${fmtHora(r.timestamp)} · ${formatTon(r.peso_kg)} ton</span>
-        <span class="history-fardo-line">
-          <span style="color:${cat==='rechazo'?'var(--red)':cat==='resimple'?'var(--green)':'var(--orange)'};font-weight:700;">${r.cliente}</span>
-          · ${r.material}
-        </span>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-// ═══════════════════════════════════════════════════
-//  TAB HISTÓRICO
-// ═══════════════════════════════════════════════════
-function renderHistorico() {
-  renderResumenSemana();
-  renderResumenMes();
-  renderHistChart("paladas");
-  renderHistChart("fardos");
-}
-
-function renderResumenSemana() {
-  const ahora = new Date(), lunes = getLunes(ahora);
-  let palTotal = 0, kgTotal = 0, cartonTotal = 0, diasConData = 0, diasTranscurridos = 0;
-  let arrConData = 0, arrATiempo = 0;
-  for (let i = 0; i < 5; i++) {
-    const d = new Date(lunes); d.setDate(d.getDate() + i);
-    if (d > ahora) break;
-    diasTranscurridos++;
-    const k = fKey(d);
-    const pal = paladasPorDia[k] || 0;
-    const kg  = (fardosPorDia[k] || {}).resimple || 0;
-    palTotal += pal; kgTotal += kg;
-    cartonTotal += (cartonPorDia[k] || {}).kg || 0;
-    if (pal > 0 || kg > 0) diasConData++;
-    // Arranque: días con paladas, ¿la primera fue a tiempo?
-    const prim = primeraPaladaPorDia[k];
-    if (prim) {
-      arrConData++;
-      if (prim.getHours() * 60 + prim.getMinutes() <= ARRANQUE_LIMITE_MIN) arrATiempo++;
+  // ── API ───────────────────────────────────────────
+  async function cargarDatos() {
+    let data;
+    try {
+      const res = await fetch(`${API_URL}?token=${TOKEN}`, { redirect: "follow" });
+      data = await res.json();
+    } catch (err) {
+      console.error("Fallo al cargar datos:", err);
+      setStatus("Error al cargar datos", "error");
+      return;
     }
-  }
-  const dias = Math.max(diasConData, 1);
-  const metaPalP = diasTranscurridos * metaPaladas;
-  const metaKgP  = diasTranscurridos * metaKgResimple;
 
-  document.getElementById("hSemPalTotal").textContent     = formatN(palTotal);
-  document.getElementById("hSemPalTotalMeta").textContent  = `${pc(palTotal, metaPalP)}% · ${formatN(palTotal)}/${formatN(metaPalP)} · ${diasTranscurridos}/5 días`;
-  document.getElementById("hSemKgTotal").textContent      = formatTon(kgTotal);
-  document.getElementById("hSemKgTotalMeta").textContent   = `${pc(kgTotal, metaKgP)}% · ${formatTon(kgTotal)}/${Math.round(metaKgP/1000)} · ${diasTranscurridos}/5 días`;
+    config = data.config || [];
+    registros = data.registros || [];
+    metaDiaria = Number(data.meta_diaria) || 0;
 
-  // Arranque a tiempo: % de días con paladas que arrancaron ≤ 09:35
-  document.getElementById("hSemArr").textContent = arrConData ? `${pc(arrATiempo, arrConData)}%` : "—";
-  document.getElementById("hSemArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ 09:35` : "Sin paladas";
-
-  // Cartón: total ton de la semana (meta proporcional si está configurada)
-  renderCartonCard("hSemCarton", "hSemCartonMeta", cartonTotal, diasTranscurridos);
-}
-
-function renderResumenMes() {
-  const ahora = new Date();
-  document.getElementById("hMesTitulo").textContent = MESES_ES[ahora.getMonth()];
-  const dlm = diasLaboralesMes(ahora.getFullYear(), ahora.getMonth());
-  let palTotal = 0, kgTotal = 0, cartonTotal = 0, diasLabT = 0, diasConData = 0;
-  let arrConData = 0, arrATiempo = 0;
-  for (let d = 1; d <= ahora.getDate(); d++) {
-    const fecha = new Date(ahora.getFullYear(), ahora.getMonth(), d);
-    if (!esLaboral(fecha)) continue;
-    diasLabT++;
-    const k = fKey(fecha);
-    const pal = paladasPorDia[k] || 0;
-    const kg  = (fardosPorDia[k] || {}).resimple || 0;
-    palTotal += pal; kgTotal += kg;
-    cartonTotal += (cartonPorDia[k] || {}).kg || 0;
-    if (pal > 0 || kg > 0) diasConData++;
-    const prim = primeraPaladaPorDia[k];
-    if (prim) {
-      arrConData++;
-      if (prim.getHours() * 60 + prim.getMinutes() <= ARRANQUE_LIMITE_MIN) arrATiempo++;
-    }
-  }
-  const dias = Math.max(diasConData, 1);
-  const metaPalP = diasLabT * metaPaladas;
-  const metaKgP  = diasLabT * metaKgResimple;
-
-  document.getElementById("hMesPalTotal").textContent     = formatN(palTotal);
-  document.getElementById("hMesPalTotalMeta").textContent  = `${pc(palTotal, metaPalP)}% · ${formatN(palTotal)}/${formatN(metaPalP)} · ${diasLabT}/${dlm} días`;
-  document.getElementById("hMesKgTotal").textContent      = formatTon(kgTotal);
-  document.getElementById("hMesKgTotalMeta").textContent   = `${pc(kgTotal, metaKgP)}% · ${formatTon(kgTotal)}/${Math.round(metaKgP/1000)} · ${diasLabT}/${dlm} días`;
-
-  document.getElementById("hMesArr").textContent = arrConData ? `${pc(arrATiempo, arrConData)}%` : "—";
-  document.getElementById("hMesArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ 09:35` : "Sin paladas";
-
-  renderCartonCard("hMesCarton", "hMesCartonMeta", cartonTotal, diasLabT);
-}
-
-// Llena una card de cartón del histórico. Si hay meta_diaria configurada,
-// muestra % y meta proporcional; si no, solo el total en toneladas.
-function renderCartonCard(idValor, idMeta, kgTotal, nDias) {
-  document.getElementById(idValor).textContent = formatTon(kgTotal);
-  const metaEl = document.getElementById(idMeta);
-  if (metaCarton > 0) {
-    const metaP = metaCarton * nDias;
-    metaEl.textContent = `${pc(kgTotal, metaP)}% · ${formatTon(kgTotal)}/${Math.round(metaP/1000)} t`;
-  } else {
-    metaEl.textContent = `${formatTon(kgTotal)} t · sin meta`;
-  }
-}
-
-// ─── Builders de barras ───
-function valorDia(fecha, dominio) {
-  const k = fKey(fecha);
-  if (dominio === "paladas") return paladasPorDia[k] || 0;
-  return fardosPorDia[k]
-    ? { ...fardosPorDia[k] }
-    : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
-}
-function totalValor(v, dominio) {
-  return dominio === "paladas" ? v : (v.resimple + v.otros + v.rechazo);
-}
-
-function buildBars(dominio) {
-  const ahora = new Date(), lunes = getLunes(ahora);
-  const metaDia = dominio === "paladas" ? metaPaladas : metaKgResimple;
-
-  if (pillActual === "semana") {
-    const bars = [];
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(lunes); d.setDate(d.getDate() + i);
-      if (d > ahora) break;
-      // [5] sin distinguir "hoy" con naranja
-      bars.push({ label: DIAS_CORTO[d.getDay()], value: valorDia(d, dominio), meta: metaDia });
-    }
-    return bars;
-  }
-  if (pillActual === "14dias") {
-    const bars = []; let count = 0;
-    for (let i = 0; count < 14 && i < 30; i++) {
-      const d = new Date(ahora); d.setDate(d.getDate() - i);
-      if (!esLaboral(d)) continue;
-      bars.push({ label: `${pad(d.getDate())}/${pad(d.getMonth()+1)}`, value: valorDia(d, dominio), meta: metaDia });
-      count++;
-    }
-    return bars.reverse();
-  }
-  if (pillActual === "semanal") {
-    const bars = [];
-    for (let w = 0; w < 8; w++) {
-      const lun = new Date(lunes); lun.setDate(lun.getDate() - w*7);
-      let acum = dominio === "paladas" ? 0 : { resimple: 0, otros: 0, rechazo: 0 };
-      let tieneData = false;
-      for (let i = 0; i < 5; i++) {
-        const d = new Date(lun); d.setDate(d.getDate() + i);
-        const v = valorDia(d, dominio);
-        if (dominio === "paladas") { acum += v; if (v > 0) tieneData = true; }
-        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple = (acum.nResimple||0) + (v.nResimple||0); acum.nOtros = (acum.nOtros||0) + (v.nOtros||0); acum.nRechazo = (acum.nRechazo||0) + (v.nRechazo||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
-      }
-      if (!tieneData && w > 0) continue;
-      bars.push({ label: `S${pad(lun.getDate())}/${pad(lun.getMonth()+1)}`, value: acum, meta: metaDia * 5 });
-    }
-    return bars.reverse();
-  }
-  if (pillActual === "mensual") {
-    const bars = [];
-    for (let m = 0; m <= ahora.getMonth(); m++) {
-      const ulD = m === ahora.getMonth() ? ahora.getDate() : new Date(ahora.getFullYear(), m+1, 0).getDate();
-      let acum = dominio === "paladas" ? 0 : { resimple: 0, otros: 0, rechazo: 0, nResimple: 0, nOtros: 0, nRechazo: 0 };
-      let tieneData = false;
-      for (let d = 1; d <= ulD; d++) {
-        const fecha = new Date(ahora.getFullYear(), m, d);
-        const v = valorDia(fecha, dominio);
-        if (dominio === "paladas") { acum += v; if (v > 0) tieneData = true; }
-        else { acum.resimple += v.resimple; acum.otros += v.otros; acum.rechazo += v.rechazo; acum.nResimple += (v.nResimple||0); acum.nOtros += (v.nOtros||0); acum.nRechazo += (v.nRechazo||0); if (v.resimple+v.otros+v.rechazo > 0) tieneData = true; }
-      }
-      if (!tieneData) continue;
-      const dlm = diasLaboralesMes(ahora.getFullYear(), m);
-      bars.push({ label: MESES_ES[m].slice(0,3), value: acum, meta: metaDia * dlm });
-    }
-    return bars;
-  }
-  return [];
-}
-
-function renderHistChart(dominio) {
-  const wId = dominio === "paladas" ? "histChartPaladas" : "histChartFardos";
-  const w   = document.getElementById(wId);
-  const bars = buildBars(dominio);
-
-  if (!bars.length) {
-    w.innerHTML = '<div class="chart-baseline"></div><div class="empty-state" style="width:100%;padding-bottom:20px;">Sin datos</div>';
-    return;
+    // Cada paso aislado: si uno falla, los demás igual se ejecutan
+    try { renderCamiones(); } catch (e) { console.error("renderCamiones:", e); }
+    try { renderTipos(); } catch (e) { console.error("renderTipos:", e); }
+    try { verificarHoy(); } catch (e) { console.error("verificarHoy:", e); }
+    try { renderPeriodos(); } catch (e) { console.error("renderPeriodos:", e); }
+    try { renderHistorial(); } catch (e) { console.error("renderHistorial:", e); }
   }
 
-  const totales = bars.map(b => totalValor(b.value, dominio));
-  const metas   = bars.map(b => b.meta);
-  const scale   = Math.max(...totales, ...metas, 1) * 1.1;
-  const metaUnif = pillActual !== "mensual" ? bars[0].meta : null;
-
-  let html = '<div class="chart-baseline"></div>';
-  if (metaUnif != null) {
-    const lbl = dominio === "paladas" ? formatN(metaUnif) : `${Math.round(metaUnif/1000)}`;
-    html += `<div class="meta-line" id="ml_${dominio}"><span class="meta-line-label">${lbl}</span></div>`;
-  }
-
-  if (dominio === "paladas") {
-    html += bars.map(b => {
-      const v = b.value, h = (v/scale)*100;
-      // [5] verde si sobre meta, gris si bajo (sin naranja)
-      const cls = v >= b.meta ? "over" : "under";
-      return `<div class="bar-col">
-        <div class="bar-count">${v > 0 ? v : ''}</div>
-        <div class="bar ${cls}" style="height:${Math.max(h, v>0?3:0)}%"></div>
-        <div class="bar-label">${b.label}</div>
-      </div>`;
-    }).join("");
-  } else {
-    html += bars.map(b => {
-      const tot = totalValor(b.value, dominio);
-      const barH = Math.max((tot/scale)*100, tot>0?3:0);
-      const seg = (kg) => tot > 0 ? (kg/tot)*100 : 0;
-      const nRes = b.value.nResimple || 0, nOts = b.value.nOtros || 0, nRec = b.value.nRechazo || 0;
-      return `<div class="stacked-col"
-          data-hora="${b.label}" data-res="${b.value.resimple}" data-otros="${b.value.otros}" data-rec="${b.value.rechazo}"
-          data-nres="${nRes}" data-notros="${nOts}" data-nrec="${nRec}"
-          ontouchstart="showTooltip(event,this)" onclick="showTooltip(event,this)">
-        <div class="stacked-total">${tot > 0 ? formatTon(tot) : ''}</div>
-        <div class="stacked-bar" style="height:${barH}%">
-          <div class="stacked-seg resimple" style="height:${seg(b.value.resimple)}%"></div>
-          <div class="stacked-seg otros"    style="height:${seg(b.value.otros)}%"></div>
-          <div class="stacked-seg rechazo"  style="height:${seg(b.value.rechazo)}%"></div>
+  function renderCamiones() {
+    const cont = document.getElementById("camionesContainer");
+    cont.innerHTML = `
+      <div class="camiones-row">
+        <div class="camiones-info">
+          <svg class="camiones-icon" viewBox="0 0 24 24" fill="none" stroke="#7a877a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          <span class="camiones-name">Camiones recibidos en andén</span>
         </div>
-        <div class="bar-label">${b.label}</div>
+        <input type="number" class="camiones-input" id="camionesInput" placeholder="0"
+               inputmode="numeric" min="0" step="1">
+      </div>`;
+  }
+
+  function renderTipos() {
+    const cont = document.getElementById("tiposContainer");
+    if (config.length === 0) {
+      cont.innerHTML = '<div class="empty-state">No hay tipos configurados</div>';
+      return;
+    }
+    cont.innerHTML = config.map((c, i) => `
+      <div class="tipo-row">
+        <div class="tipo-info">
+          <span class="tipo-name">${c.tipo}</span>
+          <span class="tipo-equiv">${formatNum(c.kg_unit)} kg c/u</span>
+        </div>
+        <input type="number" class="tipo-input" id="tipo_${i}" placeholder="0"
+               inputmode="numeric" min="0" step="1" oninput="recalcular()">
+        <div class="tipo-kg zero" id="kg_${i}">0 kg</div>
+      </div>
+    `).join("");
+  }
+
+  function recalcular() {
+    let total = 0;
+    config.forEach((c, i) => {
+      const cant = Number(document.getElementById(`tipo_${i}`).value) || 0;
+      const kg = cant * Number(c.kg_unit);
+      total += kg;
+      const cell = document.getElementById(`kg_${i}`);
+      cell.textContent = formatNum(kg) + " kg";
+      cell.classList.toggle("zero", kg === 0);
+    });
+    const tn = document.getElementById("totalKg");
+    tn.innerHTML = `${formatNum(total)} <span class="total-unit">kg</span>`;
+    tn.classList.add("bump");
+    setTimeout(() => tn.classList.remove("bump"), 180);
+    renderMeta(total);
+  }
+
+  function renderMeta(totalHoy) {
+    const el = document.getElementById("totalMeta");
+    if (!metaDiaria || metaDiaria <= 0) { el.textContent = ""; return; }
+    const pct = Math.round((totalHoy / metaDiaria) * 100);
+    el.innerHTML = `Meta diaria: ${formatNum(metaDiaria)} kg · <span class="pct">${pct}%</span>`;
+  }
+
+  // Total del día actual ya registrado (suma de kg de hoy en la base)
+  function totalHoyRegistrado() {
+    const hoy = hoyISO();
+    return registros
+      .filter(r => normalizarFecha(r.fecha) === hoy && r.tipo !== TIPO_CAMIONES)
+      .reduce((s, r) => s + Number(r.kg || 0), 0);
+  }
+
+  // ── PERIODOS (semana L–V y mes) con meta proporcional ──
+  function esLaboral(d) { const g = d.getDay(); return g >= 1 && g <= 5; } // lun-vie
+  function diasLaboralesMes(y, m) {
+    let c = 0, last = new Date(y, m + 1, 0).getDate();
+    for (let d = 1; d <= last; d++) if (esLaboral(new Date(y, m, d))) c++;
+    return c;
+  }
+  function pc(v, meta) { return meta > 0 ? Math.round(v / meta * 100) : 0; }
+
+  function renderPeriodos() {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const mes = hoy.getMonth();
+
+    // Lunes de la semana actual
+    const lunes = new Date(hoy);
+    const dow = (hoy.getDay() + 6) % 7; // 0 = lunes
+    lunes.setDate(hoy.getDate() - dow);
+    lunes.setHours(0, 0, 0, 0);
+
+    // Sumar kg por periodo (excluye Camiones, que no es kg)
+    let kgSemana = 0, kgMes = 0;
+    registros.forEach(r => {
+      if (r.tipo === TIPO_CAMIONES) return;
+      const f = normalizarFecha(r.fecha);
+      if (!f) return;
+      const d = new Date(f + "T12:00:00");
+      const diaSemana = (d.getDay() + 6) % 7;
+      const finSemana = new Date(lunes); finSemana.setDate(lunes.getDate() + 4); finSemana.setHours(23,59,59,999);
+      if (d >= lunes && d <= finSemana && diaSemana <= 4) kgSemana += Number(r.kg || 0);
+      if (d.getFullYear() === year && d.getMonth() === mes) kgMes += Number(r.kg || 0);
+    });
+
+    // Días hábiles transcurridos (incluye hoy si es laboral)
+    let diasSem = 0;
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(lunes); d.setDate(lunes.getDate() + i);
+      if (d > hoy) break;
+      diasSem++;
+    }
+    let diasMes = 0;
+    for (let d = 1; d <= hoy.getDate(); d++) {
+      if (esLaboral(new Date(year, mes, d))) diasMes++;
+    }
+    const dlm = diasLaboralesMes(year, mes);
+
+    const metaSem = diasSem * metaDiaria;
+    const metaMes = diasMes * metaDiaria;
+
+    pintarPeriodo("Semana", kgSemana, metaSem, diasSem, 5);
+    pintarPeriodo("Mes", kgMes, metaMes, diasMes, dlm);
+  }
+
+  function pintarPeriodo(periodo, kg, meta, diasTrans, diasTot) {
+    const numEl = document.getElementById("total" + periodo);
+    const metaEl = document.getElementById("meta" + periodo);
+    numEl.innerHTML = `${formatNum(kg)} <span>kg</span>`;
+
+    if (!metaDiaria || metaDiaria <= 0) {
+      if (metaEl) { metaEl.textContent = ""; metaEl.className = "periodo-meta"; }
+      numEl.classList.remove("on-meta", "off-meta");
+      return;
+    }
+    const pct = pc(kg, meta);
+    const cumple = kg >= meta;
+    if (metaEl) {
+      metaEl.textContent = `${pct}% · ${formatNum(kg)}/${formatNum(meta)} · ${diasTrans}/${diasTot} días`;
+      metaEl.className = "periodo-meta " + (cumple ? "on-meta" : "off-meta");
+    }
+    numEl.classList.remove("on-meta", "off-meta");
+    numEl.classList.add(cumple ? "on-meta" : "off-meta");
+  }
+
+  function verificarHoy() {
+    const hoy = hoyISO();
+    yaRegistradoHoy = registros.some(r => normalizarFecha(r.fecha) === hoy);
+    const aviso = document.getElementById("avisoHoy");
+    const btn = document.getElementById("btnRegistrar");
+    const btnText = document.querySelector("#btnRegistrar .btn-text");
+    aviso.classList.remove("active");
+
+    if (yaRegistradoHoy) {
+      modoEdicion = false;
+      // Precargar las cantidades registradas hoy (solo lectura)
+      const filasHoy = registros.filter(r => normalizarFecha(r.fecha) === hoy);
+      config.forEach((c, i) => {
+        const reg = filasHoy.find(r => r.tipo === c.tipo);
+        const inp = document.getElementById(`tipo_${i}`);
+        if (inp) { inp.value = reg ? reg.cantidad : ""; inp.disabled = true; }
+      });
+      const cam = filasHoy.find(r => r.tipo === TIPO_CAMIONES);
+      const camInp = document.getElementById("camionesInput");
+      if (camInp) { camInp.value = cam ? cam.cantidad : 0; camInp.disabled = true; }
+      btnText.textContent = "Día ya registrado";
+      btn.disabled = true;
+    } else {
+      modoEdicion = false;
+      config.forEach((c, i) => {
+        const inp = document.getElementById(`tipo_${i}`);
+        if (inp) inp.disabled = false;
+      });
+      const camInp = document.getElementById("camionesInput");
+      if (camInp) camInp.disabled = false;
+      btnText.textContent = "Registrar Día";
+      btn.disabled = false;
+    }
+    recalcular();
+  }
+
+  // Acepta fecha ISO "YYYY-MM-DD" o cadena de fecha completa y devuelve "YYYY-MM-DD"
+  function normalizarFecha(f) {
+    if (!f) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+    const d = new Date(f);
+    if (isNaN(d)) return String(f).slice(0,10);
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  // ── REGISTRAR (abre confirmación) ──────────────────
+  let filasPendientes = [];
+
+  function registrar() {
+    const filas = [];
+    // Camiones: ancla del día, SIEMPRE se incluye (aunque sea 0)
+    const camiones = Number(document.getElementById("camionesInput").value) || 0;
+    filas.push({ tipo: TIPO_CAMIONES, cantidad: camiones, kg: 0 });
+
+    // Tipos de cartón: solo si cantidad > 0
+    config.forEach((c, i) => {
+      const cant = Number(document.getElementById(`tipo_${i}`).value) || 0;
+      if (cant > 0) {
+        filas.push({ tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit) });
+      }
+    });
+
+    filasPendientes = filas;
+    abrirModal(filas);
+  }
+
+  function abrirModal(filas) {
+    const h = new Date();
+    document.getElementById("modalFecha").textContent =
+      `${String(h.getDate()).padStart(2,"0")}/${String(h.getMonth()+1).padStart(2,"0")}/${h.getFullYear()}`;
+
+    document.querySelector(".modal-title").textContent = "Confirmar registro";
+    document.querySelector(".modal-btn-confirm").textContent = "Registrar";
+
+    let total = 0;
+    document.getElementById("modalResumen").innerHTML = filas.map(f => {
+      if (f.tipo === TIPO_CAMIONES) {
+        return `
+        <div class="modal-line">
+          <span class="modal-line-tipo">Camiones</span>
+          <span class="modal-line-cant">×${formatNum(f.cantidad)}</span>
+          <span class="modal-line-kg">—</span>
+        </div>`;
+      }
+      total += f.kg;
+      return `
+      <div class="modal-line">
+        <span class="modal-line-tipo">${f.tipo}</span>
+        <span class="modal-line-cant">×${formatNum(f.cantidad)}</span>
+        <span class="modal-line-kg">${formatNum(f.kg)} kg</span>
+      </div>`;
+    }).join("");
+
+    document.getElementById("modalTotalKg").textContent = formatNum(total) + " kg";
+    document.getElementById("modalOverlay").classList.add("active");
+  }
+
+  function cerrarModal() {
+    document.getElementById("modalOverlay").classList.remove("active");
+  }
+
+  // ── CONFIRMAR (guarda el día de hoy desde el formulario) ──
+  async function confirmarRegistro() {
+    cerrarModal();
+    if (filasPendientes.length === 0) return;
+
+    const fecha = hoyISO();
+    // Adjuntar id + timestamp UTC a cada fila (estándar de las otras herramientas)
+    const ts = new Date().toISOString();
+    const filas = filasPendientes.map(f => ({
+      id: crypto.randomUUID(),
+      tipo: f.tipo,
+      cantidad: f.cantidad,
+      kg: f.kg,
+      timestamp: ts
+    }));
+
+    // 1) UI inmediata
+    aplicarFilasLocal(fecha, filas);
+    yaRegistradoHoy = true;
+    modoEdicion = false;
+    document.getElementById("avisoHoy").classList.remove("active");
+    animarBoton();
+    guardandoDia = fecha;
+    verificarHoy();      // bloquea inputs y botón
+    renderHistorial();
+    renderPeriodos();
+    setStatus("Guardando…", "");
+
+    // 2) Backend en segundo plano
+    await enviarDia(fecha, filas);
+  }
+
+  // Reemplaza en memoria las filas de una fecha
+  function aplicarFilasLocal(fecha, filas) {
+    registros = registros.filter(r => normalizarFecha(r.fecha) !== fecha);
+    filas.forEach(f => registros.push({
+      id: f.id, fecha: fecha, tipo: f.tipo,
+      cantidad: f.cantidad, kg: f.kg, timestamp: f.timestamp
+    }));
+  }
+
+  // POST en segundo plano (no bloquea). guardandoDia marca el ítem en proceso.
+  async function enviarDia(fecha, filas) {
+    const payload = { fecha: fecha, filas: filas };
+    try {
+      const res = await fetch(`${API_URL}?token=${TOKEN}`, {
+        method: "POST", redirect: "follow",
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      guardandoDia = null;
+      renderHistorial();
+      setStatus(data && data.reemplazado ? "✓ Día actualizado" : "✓ Día registrado", "ok");
+    } catch (err) {
+      guardandoDia = null;
+      renderHistorial();
+      setStatus("⚠ Error al guardar — reintenta", "error");
+    }
+  }
+
+  function animarBoton() {
+    const btn = document.getElementById("btnRegistrar");
+    btn.classList.add("success");
+    setTimeout(() => btn.classList.remove("success"), 700);
+  }
+
+  // ── HISTORIAL: últimos N días hábiles (incluye los que están en 0) ──
+  function fechaToISO(d) {
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+  function esHabil(d) { const g = d.getDay(); return g >= 1 && g <= 5; } // lun-vie
+  // Día hábil anterior a hoy (salta sáb/dom)
+  function diaHabilAnteriorISO() {
+    const a = new Date();
+    do { a.setDate(a.getDate() - 1); } while (!esHabil(a));
+    return fechaToISO(a);
+  }
+  // Últimos N días hábiles terminando hoy (si hoy es hábil) o en el último hábil
+  function ultimosDiasHabiles(n) {
+    const out = [];
+    const d = new Date();
+    while (out.length < n) {
+      if (esHabil(d)) out.push(fechaToISO(d));
+      d.setDate(d.getDate() - 1);
+    }
+    return out; // del más reciente al más antiguo
+  }
+
+  function renderHistorial() {
+    const lista = document.getElementById("historyList");
+
+    const kgPorFecha = {};        // suma de kg (excluye Camiones)
+    const camionesPorFecha = {};  // # camiones por fecha
+    const registrado = {};        // fechas que tienen alguna fila (día registrado)
+    registros.forEach(r => {
+      const f = normalizarFecha(r.fecha);
+      if (!f) return;
+      registrado[f] = true;
+      if (r.tipo === TIPO_CAMIONES) {
+        camionesPorFecha[f] = (camionesPorFecha[f] || 0) + Number(r.cantidad || 0);
+      } else {
+        kgPorFecha[f] = (kgPorFecha[f] || 0) + Number(r.kg || 0);
+      }
+    });
+
+    const hoy = hoyISO();
+    const habilAnterior = diaHabilAnteriorISO();
+    const fechas = ultimosDiasHabiles(DIAS_HISTORIAL + 1)
+      // Hoy solo aparece si fue registrado; el resto siempre (en 0 si no hay)
+      .filter(f => f !== hoy || registrado[hoy])
+      .slice(0, DIAS_HISTORIAL);
+
+    lista.innerHTML = fechas.map(f => {
+      const kg = kgPorFecha[f] || 0;
+      const cam = camionesPorFecha[f] || 0;
+      const d = new Date(f + "T00:00:00");
+      const fechaDisp = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+      const esHoy = (f === hoy);
+      const editable = (f === hoy || f === habilAnterior);
+      const badge = esHoy ? '<span class="history-badge">HOY</span>' : '';
+      const dot = (guardandoDia === f) ? '<span class="pending-dot" title="Guardando…"></span>' : '';
+      const editBtn = editable ? `<button class="btn-editar" onclick="abrirModalEdit('${f}')">Editar</button>` : '';
+      return `
+      <div class="history-item${esHoy ? ' hoy' : ''}">
+        <div class="history-left">
+          <div class="history-fecha">${fechaDisp}${badge}</div>
+          <div class="history-fecha-day">${DIAS[d.getDay()]} · ${cam} ${cam === 1 ? "camión" : "camiones"}</div>
+        </div>
+        <div class="history-right">
+          ${dot}
+          <div class="history-kg">${formatNum(kg)} <span>kg</span></div>
+          ${editBtn}
+        </div>
       </div>`;
     }).join("");
   }
 
-  w.innerHTML = html;
+  // ── MODAL DE EDICIÓN (hoy / ayer) ──────────────────
+  let fechaEditando = null;
 
-  if (metaUnif != null) {
-    requestAnimationFrame(() => {
-      const wrapH = w.clientHeight, usable = wrapH - 20;
-      const lineBottom = 20 + (metaUnif / scale) * usable;
-      const line = document.getElementById(`ml_${dominio}`);
-      if (line) line.style.bottom = lineBottom + "px";
+  function abrirModalEdit(fecha) {
+    fechaEditando = fecha;
+    const d = new Date(fecha + "T00:00:00");
+    const disp = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} · ${DIAS[d.getDay()]}`;
+    document.getElementById("modalEditFecha").textContent = disp;
+
+    const filasDia = registros.filter(r => normalizarFecha(r.fecha) === fecha);
+    const camReg = filasDia.find(r => r.tipo === TIPO_CAMIONES);
+    const camVal = camReg ? camReg.cantidad : 0;
+
+    const camposHtml = `
+      <div class="edit-row">
+        <span class="edit-tipo">Camiones</span>
+        <input type="number" class="edit-input" id="editCamiones" value="${camVal}" placeholder="0"
+               inputmode="numeric" min="0" step="1">
+        <span class="edit-kg" style="color:var(--gray-300)">—</span>
+      </div>` +
+      config.map((c, i) => {
+        const reg = filasDia.find(r => r.tipo === c.tipo);
+        const val = reg ? reg.cantidad : "";
+        return `
+        <div class="edit-row">
+          <span class="edit-tipo">${c.tipo}</span>
+          <input type="number" class="edit-input" id="edit_${i}" value="${val}" placeholder="0"
+                 inputmode="numeric" min="0" step="1" oninput="recalcularEdit()">
+          <span class="edit-kg zero" id="editkg_${i}">0 kg</span>
+        </div>`;
+      }).join("");
+
+    document.getElementById("modalEditCampos").innerHTML = camposHtml;
+    recalcularEdit();
+    document.getElementById("modalEditOverlay").classList.add("active");
+  }
+
+  function recalcularEdit() {
+    let total = 0;
+    config.forEach((c, i) => {
+      const cant = Number(document.getElementById(`edit_${i}`).value) || 0;
+      const kg = cant * Number(c.kg_unit);
+      total += kg;
+      const cell = document.getElementById(`editkg_${i}`);
+      cell.textContent = formatNum(kg) + " kg";
+      cell.classList.toggle("zero", kg === 0);
     });
+    document.getElementById("modalEditTotal").textContent = formatNum(total) + " kg";
   }
-}
 
-// ═══════════════════════════════════════════════════
-//  TOOLTIP GRÁFICO FARDOS
-// ═══════════════════════════════════════════════════
-let tooltipTimer = null;
-
-function showTooltip(e, el) {
-  e.stopPropagation();
-  const tt = document.getElementById("chartTooltip");
-  const h    = el.dataset.hora;
-  const res  = Number(el.dataset.res);
-  const ots  = Number(el.dataset.otros);
-  const rec  = Number(el.dataset.rec);
-  const nRes = Number(el.dataset.nres);
-  const nOts = Number(el.dataset.notros);
-  const nRec = Number(el.dataset.nrec);
-  const total = res + ots + rec;
-
-  // Formatea ton: sin decimales si es 0, con 2 decimales si tiene valor
-  const fT = (kg) => kg === 0 ? "0 t" : formatTon(kg) + " t";
-  const fF = (n)  => `${n} fardo${n !== 1 ? "s" : ""}`;
-
-  const fila = (cat, label, kg, n) => `
-    <div class="chart-tooltip-row">
-      <div class="chart-tooltip-dot ${cat}"></div>
-      <span>${label}:</span>
-      <strong style="margin-left:auto;padding-left:8px;">${fT(kg)} · ${fF(n)}</strong>
-    </div>`;
-
-  // Si h es un número es hora del día (hoy), si no es label histórico
-  const esHora = !isNaN(Number(h));
-  const titulo = esHora ? `${pad(Number(h))}:00 — ${pad(Number(h)+1)}:00` : h;
-
-  tt.innerHTML = `
-    <div class="chart-tooltip-title">${titulo}</div>
-    ${fila("resimple", "Resimple", res, nRes)}
-    ${fila("otros",    "Otros",    ots, nOts)}
-    ${fila("rechazo",  "Rechazo",  rec, nRec)}
-    ${total > 0 ? `<div style="border-top:1px solid rgba(255,255,255,0.15);margin-top:4px;padding-top:4px;font-size:10px;display:flex;justify-content:space-between;">
-      <span>Total</span><strong>${fT(total)} · ${fF(nRes + nOts + nRec)}</strong></div>` : ''}
-  `;
-
-  // Posicionar cerca del toque pero dentro de la pantalla
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  const margin = 8;
-  tt.classList.add("visible");
-  requestAnimationFrame(() => {
-    const tw = tt.offsetWidth, th = tt.offsetHeight;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    let left = clientX - tw / 2;
-    let top  = clientY - th - 12;
-    if (left < margin) left = margin;
-    if (left + tw > vw - margin) left = vw - margin - tw;
-    if (top < margin) top = clientY + 20;
-    tt.style.left = left + "px";
-    tt.style.top  = top  + "px";
-  });
-
-  // Auto-ocultar tras 3 segundos
-  clearTimeout(tooltipTimer);
-  tooltipTimer = setTimeout(hideTooltip, 3000);
-}
-
-function hideTooltip() {
-  document.getElementById("chartTooltip").classList.remove("visible");
-}
-
-document.addEventListener("touchstart", hideTooltip);
-document.addEventListener("click", hideTooltip);
-
-// ═══════════════════════════════════════════════════
-//  UTILS
-// ═══════════════════════════════════════════════════
-function setStatus(msg, ok) {
-  const el = document.getElementById("statusBar");
-  el.textContent = msg; el.className = "status-bar" + (msg && !ok ? " error" : "");
-  if (ok) {
-    const now = new Date();
-    document.getElementById("statusTime").textContent = `Actualizado ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  function cerrarModalEdit() {
+    document.getElementById("modalEditOverlay").classList.remove("active");
+    fechaEditando = null;
   }
-}
-async function refrescar() {
-  const btn = document.getElementById("btnRefresh");
-  btn.classList.add("spinning");
-  await cargarDatos();
-  btn.classList.remove("spinning");
-}
+
+  async function guardarEdicion() {
+    if (!fechaEditando) return;
+    const fecha = fechaEditando;
+
+    const ts = new Date().toISOString();
+    const filas = [];
+    // Camiones: ancla, siempre se guarda (aunque sea 0)
+    const camiones = Number(document.getElementById("editCamiones").value) || 0;
+    filas.push({ id: crypto.randomUUID(), tipo: TIPO_CAMIONES, cantidad: camiones, kg: 0, timestamp: ts });
+
+    config.forEach((c, i) => {
+      const cant = Number(document.getElementById(`edit_${i}`).value) || 0;
+      if (cant > 0) {
+        filas.push({
+          id: crypto.randomUUID(),
+          tipo: c.tipo,
+          cantidad: cant,
+          kg: cant * Number(c.kg_unit),
+          timestamp: ts
+        });
+      }
+    });
+
+    cerrarModalEdit();
+
+    // UI inmediata
+    aplicarFilasLocal(fecha, filas);
+    guardandoDia = fecha;
+    renderHistorial();
+    renderPeriodos();
+    // Si editamos hoy, refrescar también el formulario y la caja de hoy
+    if (fecha === hoyISO()) {
+      verificarHoy();
+    }
+    setStatus("Guardando…", "");
+
+    await enviarDia(fecha, filas);
+  }
+
+  function formatNum(n) { return Number(n).toLocaleString("es-CL"); }
+
+  function setStatus(msg, tipo) {
+    const bar = document.getElementById("statusBar");
+    bar.textContent = msg;
+    bar.className = "status-bar" + (tipo ? ` ${tipo}` : "");
+    if (tipo === "ok") setTimeout(() => { if (bar.textContent === msg) setStatus("", ""); }, 2500);
+  }
 </script>
+
+<!-- MODAL CONFIRMACIÓN -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-title">Confirmar registro</div>
+    <div class="modal-sub" id="modalFecha"></div>
+    <div class="modal-resumen" id="modalResumen"></div>
+    <div class="modal-total">
+      <span class="modal-total-label">Total</span>
+      <span class="modal-total-kg" id="modalTotalKg">0 kg</span>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="modal-btn modal-btn-confirm" onclick="confirmarRegistro()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDICIÓN (hoy / ayer) -->
+<div class="modal-overlay" id="modalEditOverlay">
+  <div class="modal-box">
+    <div class="modal-title">Editar día</div>
+    <div class="modal-sub" id="modalEditFecha"></div>
+    <div id="modalEditCampos"></div>
+    <div class="modal-total">
+      <span class="modal-total-label">Total</span>
+      <span class="modal-total-kg" id="modalEditTotal">0 kg</span>
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-cancel" onclick="cerrarModalEdit()">Cancelar</button>
+      <button class="modal-btn modal-btn-confirm" onclick="guardarEdicion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
