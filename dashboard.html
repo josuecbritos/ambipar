@@ -39,7 +39,7 @@
   .period-label { font-size: 14px; font-weight: 700; min-width: 200px; text-align: center; }
 
   /* TARJETAS RESUMEN AGRUPADAS */
-  .card-groups { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 16px; margin-bottom: 22px; align-items: stretch; }
+  .card-groups { display: grid; grid-template-columns: 1fr 2fr 2fr 1fr; gap: 16px; margin-bottom: 22px; align-items: stretch; }
   .group-block { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 12px 12px 14px; display: flex; flex-direction: column; }
   .group-head { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-dark); margin-bottom: 10px; padding-left: 2px; display: flex; align-items: center; gap: 8px; }
   .group-head::before { content: ""; width: 4px; height: 13px; border-radius: 2px; background: var(--green-mid); flex-shrink: 0; }
@@ -228,7 +228,7 @@
   const TZ = 'America/Santiago';
 
   // Estado en memoria
-  window.DATA = { paladas: [], detenciones: [], fardos: [], config: {}, cargado: false };
+  window.DATA = { paladas: [], detenciones: [], fardos: [], carton: [], config: {}, cargado: false };
 
   function setStatus(txt, esError) {
     const el = document.getElementById('dataStatus');
@@ -257,6 +257,16 @@
     };
   }
 
+  // Normaliza la Fecha de cartón a "YYYY-MM-DD". Acepta string ya formateado
+  // o un ISO/Date (toma la parte de día en hora Chile, coherente con el resto).
+  function normFechaCarton(v) {
+    if (!v) return null;
+    const s = String(v).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const t = aHoraChile(s);
+    return t ? t.fecha : null;
+  }
+
   async function cargarDatos(fresh) {
     setStatus(fresh ? 'Actualizando…' : 'Cargando datos…');
     try {
@@ -272,9 +282,18 @@
         ...r, _ini: aHoraChile(r.inicio), _fin: aHoraChile(r.fin)
       }));
       const far = (json.data.fardos || []).map(r => ({ ...r, _t: aHoraChile(r.timestamp) }));
+      // Cartón: registro diario. La Fecha ya viene como día-Chile "YYYY-MM-DD";
+      // se usa esa fecha directamente como clave de día (sin conversión horaria).
+      const car = (json.data.carton || []).map(r => ({
+        ...r,
+        fecha: normFechaCarton(r.Fecha),
+        tipo: String(r.Tipo || '').trim(),
+        cantidad: Number(r.Cantidad) || 0,
+        kg: Number(r.Kg) || 0
+      }));
 
       window.DATA = {
-        paladas: pal, detenciones: det, fardos: far,
+        paladas: pal, detenciones: det, fardos: far, carton: car,
         config: json.config || {}, cargado: true,
         generado: json.generated_at
       };
@@ -317,21 +336,25 @@
     operacion:    '2026-04-13',
     enfardado:    '2026-04-30',
     disponibilidad:'2026-05-07',
-    uso_faresin:  '2026-05-20'
+    uso_faresin:  '2026-05-20',
+    carton:       '2026-04-13'
   };
 
   // Lee config con defaults. Acepta valores tipo "09:30:00" o "09:30".
   function leerConfig(cfg) {
-    const cp = cfg.paladas || {}, cd = cfg.detenciones || {}, cf = cfg.fardos || {};
+    const cp = cfg.paladas || {}, cd = cfg.detenciones || {}, cf = cfg.fardos || {}, cc = cfg.carton || {};
     const num = (v, def) => { const n = parseFloat(v); return isNaN(n) ? def : n; };
     // horarios_fin: "18:00,18:00,18:00,17:00,17:00,16:00,off" (lun..dom)
     const horStr = String(cp.horarios_fin || '18:00,18:00,18:00,17:00,17:00,16:00,off');
     const horariosFin = horStr.split(',').map(s => s.trim());
+    // metaCarton: si no hay valor configurado, queda null → las celdas van sin semáforo
+    const mc = parseFloat(cc.meta_diaria);
     return {
       metaPaladas:    num(cp.meta_paladas, 125),
       metaUsoFaresin: num(cp.meta_uso_faresin, 75),
       metaDisp:       num(cd.meta_disponibilidad, 85),
       metaKg:         num(cf.meta_kg, 16000),
+      metaCarton:     isNaN(mc) ? null : mc,                // kg/día; null = sin meta
       tolPrimera:     num(cd.margen_tolerancia, 5),       // min tolerancia 1ª palada
       margenUltima:   num(cp.cumplimiento_ultima_margen_min, 10), // min antes de fin
       timeout:        num(cp.timeout_inactividad_min, 10),
@@ -387,10 +410,16 @@
     const palDia = agruparPorDia(DATA.paladas, '_t');
     const detDia = agruparPorDia(DATA.detenciones, '_ini');
     const farDia = agruparPorDia(DATA.fardos, '_t');
+    // Cartón ya trae .fecha "YYYY-MM-DD"; se agrupa directo por esa clave.
+    const carDia = {};
+    (DATA.carton || []).forEach(r => {
+      if (!r.fecha) return;
+      (carDia[r.fecha] = carDia[r.fecha] || []).push(r);
+    });
 
     // universo de fechas (todas las que aparezcan en cualquier hoja)
     const fechas = Array.from(new Set([
-      ...Object.keys(palDia), ...Object.keys(detDia), ...Object.keys(farDia)
+      ...Object.keys(palDia), ...Object.keys(detDia), ...Object.keys(farDia), ...Object.keys(carDia)
     ])).sort();
 
     const porDia = {};
@@ -401,7 +430,8 @@
         enfardado:     (f >= INICIO_KPI.enfardado)     ? kpiEnfardado(farDia[f] || []) : null,
         usoFaresin:    (f >= INICIO_KPI.uso_faresin)   ? kpiUsoFaresin(palDia[f] || [], f, C) : null,
         disponibilidad:(f >= INICIO_KPI.disponibilidad)? kpiDisponibilidad(detDia[f] || [], f, C) : null,
-        operacion:     (f >= INICIO_KPI.operacion)     ? kpiOperacion(palDia[f] || [], f, C) : null
+        operacion:     (f >= INICIO_KPI.operacion)     ? kpiOperacion(palDia[f] || [], f, C) : null,
+        carton:        (f >= INICIO_KPI.carton)        ? kpiCarton(carDia[f] || []) : null
       };
     });
 
@@ -485,6 +515,13 @@
         if (d.operacion.cumpleUltima) cumpleU++;
       }});
 
+      // Cartón: suma de kg y de camiones. Se suma sobre TODOS los días del
+      // grupo que tengan cartón (no se filtra por "conPaladas"): el cartón es
+      // pre-entrada y puede recibirse en días sin operación de línea.
+      const carDias = (SOLO_DIAS_CON_DATOS ? dias : dias).filter(d => d.carton);
+      let carKg = 0, carCam = 0, carN = 0;
+      carDias.forEach(d => { carKg += d.carton.kg; carCam += d.carton.camiones; carN++; });
+
       out[k] = {
         clave: k, nDias: usar.length,
         paladas: paladas != null ? { paladas } : null,
@@ -495,7 +532,8 @@
         disponibilidad: dn ? { programado: prog, dispMin: disp, detenidoMin: prog - disp,
           pct: prog > 0 ? (disp / prog) * 100 : 0, causas } : null,
         operacion: opN ? { cumplePrimera: (cumpleP / opN) * 100, cumpleUltima: (cumpleU / opN) * 100,
-          combinado: ((cumpleP + cumpleU) / (2 * opN)) * 100, nDias: opN } : null
+          combinado: ((cumpleP + cumpleU) / (2 * opN)) * 100, nDias: opN } : null,
+        carton: carN ? { kg: carKg, camiones: carCam, nDias: carN } : null
       };
     });
     return out;
@@ -517,7 +555,22 @@
     return { paladas: n };
   }
 
-  // ── KPI 2: Enfardado (kg por categoría) ──────────────────────
+  // ── KPI 6: Cartón (kg totales + camiones recibidos), registro diario ──
+  // Cada fila: { tipo, cantidad, kg }. El tipo "Camiones" es reservado:
+  // cuenta unidades de camión recibidas y NO suma a los kg de cartón.
+  function kpiCarton(regs) {
+    if (!regs.length) return null;
+    let kg = 0, camiones = 0;
+    regs.forEach(r => {
+      const tipo = String(r.tipo || '').trim().toLowerCase();
+      if (tipo === 'camiones') {
+        camiones += Number(r.cantidad) || 0;
+      } else {
+        kg += Number(r.kg) || 0;
+      }
+    });
+    return { kg, camiones };
+  }
   function kpiEnfardado(regs) {
     let resimple = 0, otros = 0, rechazo = 0;
     const matriz = {}; // matriz[material][cliente] = {fardos, kg}
@@ -728,6 +781,30 @@
     return K.fechas.filter(f => K.porDia[f].paladas && K.porDia[f].paladas.paladas > 0);
   }
 
+  // Card de cartón reutilizable (diario/semanal/mensual).
+  //  carObj: { kg, camiones, [nDias] }   ·   ant: objeto carton del período previo
+  //  metaDias: nº de días para escalar la meta diaria (1 en diario).
+  function cardCarton(carObj, C, ant, metaDias, etiquetaDelta) {
+    const nd = metaDias || (carObj && carObj.nDias) || 1;
+    const metaTotal = (C.metaCarton != null) ? C.metaCarton * nd : null;
+    const kg = carObj ? carObj.kg : null;
+    const cam = carObj ? carObj.camiones : null;
+    const t = kg != null ? kg2t(kg) : null;
+    // Semáforo solo si hay meta; si metaCarton es null → dot-gray (sin color)
+    const dot = dotClase(kg, metaTotal);
+    const metaTxt = (metaTotal != null) ? `Meta ${fmt1(kg2t(metaTotal))} t` : 'Sin meta';
+    const delta = (ant && etiquetaDelta) ? deltaHTML(kg, ant.kg, etiquetaDelta) : '';
+    const sub = carObj ? `${cam != null ? fmt0(cam) : '0'} camion${cam === 1 ? '' : 'es'} recibidos` : null;
+    return `
+      <div class="card">
+        <div class="card-label">Cartón</div>
+        <div class="card-value"><span class="dot ${dot}"></span>${t != null ? fmt1(t) : '–'}<span class="card-unit"> t</span></div>
+        <div class="card-meta">${metaTxt}</div>
+        ${delta}
+        ${sub ? `<div class="card-sub">${sub}</div>` : ''}
+      </div>`;
+  }
+
   function renderDiario(fecha) {
     const K = window.KPIS, C = K.config;
     const dia = K.porDia[fecha];
@@ -794,13 +871,19 @@
       ant && ant.usoFaresin ? deltaHTML(ufAlim, ant.usoFaresin.pct.alimentando, 'vs día ant.') : ''
     );
 
+    // Pre Entrada — Cartón (TON + camiones recibidos)
+    const car = dia.carton;
+    const cCarton = cardCarton(car, C, ant && ant.carton);
+
     document.getElementById('d_cards').innerHTML = `
       <div class="group-block"><div class="group-head">Salida</div>
         <div class="group-cards">${cSalida}</div></div>
       <div class="group-block"><div class="group-head">Funcionamiento de la línea</div>
         <div class="group-cards two">${cDisp}${cOp}</div></div>
       <div class="group-block"><div class="group-head">Entrada</div>
-        <div class="group-cards two">${cPal}${cFar}</div></div>`;
+        <div class="group-cards two">${cPal}${cFar}</div></div>
+      <div class="group-block"><div class="group-head">Pre Entrada</div>
+        <div class="group-cards">${cCarton}</div></div>`;
 
     // ── Gráfico faresín (barra apilada) ──
     if (uf) {
@@ -954,7 +1037,8 @@
     document.getElementById('s_cards').innerHTML = `
       <div class="group-block"><div class="group-head">Salida</div><div class="group-cards">${cSalida}</div></div>
       <div class="group-block"><div class="group-head">Funcionamiento de la línea</div><div class="group-cards two">${cDisp}${cOp}</div></div>
-      <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>`;
+      <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>
+      <div class="group-block"><div class="group-head">Pre Entrada</div><div class="group-cards">${cardCarton(sem.carton, C, sem1 && sem1.carton, sem.nDias, 'vs Sem-1')}</div></div>`;
 
     // ── Tabla detalle por día ──
     renderTablaSemanal(lunes, sem, sem1, sem2, sem3, mes, C);
@@ -1022,6 +1106,28 @@
       const tot = (p, sep) => p && p.paladas ? celT(fmt0(p.paladas.paladas), dotClase(p.paladas.paladas, C.metaPaladas * (p.nDias || 5)), sep || '') : `<td class="col-total ${sep||''}">–</td>`;
       return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">125/día</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
     }
+    // Cartón (t): semáforo vs meta diaria; si no hay meta configurada → sin color (dot-gray)
+    function filaCartonTon() {
+      const hayMeta = C.metaCarton != null;
+      const metaTxt = hayMeta ? `${fmt1(kg2t(C.metaCarton))} t/día` : '–';
+      const cels = dd.map(d => {
+        if (!d || !d.carton) return '<td class="kpi-cell">–</td>';
+        const dot = hayMeta ? dotClase(d.carton.kg, C.metaCarton) : 'dot-gray';
+        return cel(fmt1(kg2t(d.carton.kg)), dot);
+      }).join('');
+      const tot = (p, sep) => {
+        if (!p || !p.carton) return `<td class="col-total ${sep||''}">–</td>`;
+        const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.nDias || 5)) : 'dot-gray';
+        return celT(fmt1(kg2t(p.carton.kg)), dot, sep || '');
+      };
+      return `<tr><td class="kpi-name">Cartón (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
+    }
+    // Camiones recibidos: informativa, sin semáforo
+    function filaCartonCamiones() {
+      return filaInfo('Camiones recibidos',
+        d => d && d.carton ? fmt0(d.carton.camiones) : null,
+        p => p && p.carton ? fmt0(p.carton.camiones) : null);
+    }
 
     const html = `
       <thead><tr>
@@ -1042,6 +1148,9 @@
         <tr class="group-row"><td colspan="12">Entrada</td></tr>
         ${filaPaladas()}
         ${filaPct('Faresín alimentando', C.metaUsoFaresin, d => d && d.usoFaresin && d.usoFaresin.pct.alimentando, p => p.usoFaresin && p.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
+        <tr class="group-row"><td colspan="12">Pre Entrada</td></tr>
+        ${filaCartonTon()}
+        ${filaCartonCamiones()}
       </tbody>`;
     document.getElementById('s_tabla').innerHTML = html;
     document.getElementById('s_nota_horarios').textContent = notaHorarios(C);
@@ -1196,7 +1305,8 @@
     document.getElementById('m_cards').innerHTML = `
       <div class="group-block"><div class="group-head">Salida</div><div class="group-cards">${cSalida}</div></div>
       <div class="group-block"><div class="group-head">Funcionamiento de la línea</div><div class="group-cards two">${cDisp}${cOp}</div></div>
-      <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>`;
+      <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>
+      <div class="group-block"><div class="group-head">Pre Entrada</div><div class="group-cards">${cardCarton(mes.carton, C, mes1 && mes1.carton, mes.nDias, 'vs Mes-1')}</div></div>`;
 
     renderTablaMensual(mesKey, mes, mes1, mes2, C);
     renderBarrasFaresin('m_faresin_bar', 'm_faresin_leg', uf);
@@ -1240,6 +1350,22 @@
       const tt = (p, sep) => p && p.paladas ? celT(fmt0(p.paladas.paladas), dotClase(p.paladas.paladas, C.metaPaladas * (p.nDias || 20)), sep) : `<td class="col-total ${sep||''}">–</td>`;
       return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">125/día</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
     }
+    function filaCartonTon() {
+      const hayMeta = C.metaCarton != null;
+      const metaTxt = hayMeta ? `${fmt1(kg2t(C.metaCarton))} t/día` : '–';
+      const cels = ss.map(s => {
+        if (!s || !s.carton) return '<td class="kpi-cell">–</td>';
+        const dot = hayMeta ? dotClase(s.carton.kg, C.metaCarton * (s.nDias || 5)) : 'dot-gray';
+        return cel(fmt1(kg2t(s.carton.kg)), dot);
+      }).join('');
+      const tt = (p, sep) => {
+        if (!p || !p.carton) return `<td class="col-total ${sep||''}">–</td>`;
+        const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.nDias || 20)) : 'dot-gray';
+        return celT(fmt1(kg2t(p.carton.kg)), dot, sep);
+      };
+      return `<tr><td class="kpi-name">Cartón (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+    }
+    const filaCartonCamiones = () => filaInfoMes('Camiones recibidos', p => p.carton ? fmt0(p.carton.camiones) : null);
 
     const html = `
       <thead><tr>
@@ -1259,6 +1385,9 @@
         <tr class="group-row"><td colspan="${nCols}">Entrada</td></tr>
         ${filaPaladas()}
         ${filaPct('Faresín alimentando', C.metaUsoFaresin, s => s.usoFaresin && s.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
+        <tr class="group-row"><td colspan="${nCols}">Pre Entrada</td></tr>
+        ${filaCartonTon()}
+        ${filaCartonCamiones()}
       </tbody>`;
     document.getElementById('m_tabla').innerHTML = html;
   }
