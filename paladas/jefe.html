@@ -313,6 +313,9 @@
         <div class="label">Paladas</div>
         <div class="stat-value off-meta" id="statPaladas"><div class="skeleton skeleton-stat"></div></div>
         <div class="meta-text off-meta" id="metaPaladas"></div>
+        <div class="stat-substats">
+          <div class="stat-substats-line" id="statArranqueLine" style="color:var(--gray-500);">Arranque —</div>
+        </div>
       </div>
       <div class="stat-box">
         <div class="label" style="font-size:8.5px;white-space:nowrap;">Ton Enfardadas Resimple</div>
@@ -373,6 +376,16 @@
           <div class="hist-card-value" id="hSemKgTotal">—</div>
           <div class="hist-card-meta"  id="hSemKgTotalMeta"></div>
         </div>
+        <div class="hist-card">
+          <div class="hist-card-label">Arranque a tiempo</div>
+          <div class="hist-card-value" id="hSemArr">—</div>
+          <div class="hist-card-meta"  id="hSemArrMeta"></div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-label">Total ton Cartón</div>
+          <div class="hist-card-value" id="hSemCarton">—</div>
+          <div class="hist-card-meta"  id="hSemCartonMeta"></div>
+        </div>
       </div>
     </div>
 
@@ -389,6 +402,16 @@
           <div class="hist-card-label">Total ton Resimple</div>
           <div class="hist-card-value" id="hMesKgTotal">—</div>
           <div class="hist-card-meta"  id="hMesKgTotalMeta"></div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-label">Arranque a tiempo</div>
+          <div class="hist-card-value" id="hMesArr">—</div>
+          <div class="hist-card-meta"  id="hMesArrMeta"></div>
+        </div>
+        <div class="hist-card">
+          <div class="hist-card-label">Total ton Cartón</div>
+          <div class="hist-card-value" id="hMesCarton">—</div>
+          <div class="hist-card-meta"  id="hMesCartonMeta"></div>
         </div>
       </div>
     </div>
@@ -437,14 +460,17 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx7x65j3SEx_mNOyGM3H5UJ
 const TOKEN   = "paladas2026";
 const CLIENTE_META     = "Resimple";
 const MATERIAL_RECHAZO = "Rechazo";
+// Arranque a tiempo: 1ª palada del día hasta esta hora (hora_inicio_turno 9:30
+// + tolerancia 5 min, igual criterio que el dashboard). Verde si cumple.
+const ARRANQUE_LIMITE_MIN = 9 * 60 + 35; // 09:35
 
 const MESES_ES   = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DIAS_CORTO = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"];
 
 // ─── Estado ───
-let paladas = [], fardos = [];
-let metaPaladas = 125, metaKgResimple = 16000;
-let paladasPorDia = {}, fardosPorDia = {};
+let paladas = [], fardos = [], carton = [];
+let metaPaladas = 125, metaKgResimple = 16000, metaCarton = 0;
+let paladasPorDia = {}, fardosPorDia = {}, cartonPorDia = {}, primeraPaladaPorDia = {};
 let tabActual   = "hoy";
 let pillActual  = "semana";
 let histPillActual = "paladas"; // [8] pill historial hoy
@@ -464,13 +490,21 @@ async function cargarDatos() {
 
     paladas        = (data.paladas || []).filter(r => !r.tipo || r.tipo === "palada");
     fardos         = data.fardos  || [];
+    carton         = data.carton  || [];
     metaPaladas    = Number(data.meta_paladas)     || 125;
     metaKgResimple = Number(data.meta_kg_resimple) || 16000;
+    metaCarton     = Number(data.meta_carton)      || 0;
 
     paladasPorDia = {};
+    primeraPaladaPorDia = {};
     paladas.forEach(r => {
-      const k = fKey(new Date(r.timestamp));
+      const fecha = new Date(r.timestamp);
+      const k = fKey(fecha);
       paladasPorDia[k] = (paladasPorDia[k] || 0) + 1;
+      // Guardar el timestamp de la primera palada (más temprana) de cada día
+      if (!primeraPaladaPorDia[k] || fecha < primeraPaladaPorDia[k]) {
+        primeraPaladaPorDia[k] = fecha;
+      }
     });
 
     fardosPorDia = {};
@@ -482,6 +516,18 @@ async function cargarDatos() {
       if (cat === "resimple") fardosPorDia[k].nResimple++;
       else if (cat === "otros") fardosPorDia[k].nOtros++;
       else if (cat === "rechazo") fardosPorDia[k].nRechazo++;
+    });
+
+    // Cartón: registro diario. La columna "Fecha" ya viene como día-Chile
+    // ("YYYY-MM-DD"); se usa como clave directa. Tipo "Camiones" no suma kg.
+    cartonPorDia = {};
+    carton.forEach(r => {
+      const k = normFechaCarton(r.Fecha);
+      if (!k) return;
+      const tipo = String(r.Tipo || "").trim().toLowerCase();
+      if (!cartonPorDia[k]) cartonPorDia[k] = { kg: 0, camiones: 0 };
+      if (tipo === "camiones") cartonPorDia[k].camiones += Number(r.Cantidad) || 0;
+      else cartonPorDia[k].kg += Number(r.Kg) || 0;
     });
 
     actualizarHoy();
@@ -501,6 +547,15 @@ function categoriaFardo(r) {
   return "otros";
 }
 function fKey(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+// Normaliza la Fecha de cartón a "YYYY-MM-DD". La hoja ya guarda el día Chile;
+// si llegara un ISO, se toma su parte de fecha local.
+function normFechaCarton(v) {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const d = new Date(s);
+  return isNaN(d) ? null : fKey(d);
+}
 function pad(n)  { return String(n).padStart(2,"0"); }
 function esHoy(ts)     { return new Date(ts).toDateString() === new Date().toDateString(); }
 function esLaboral(d)  { const g = d.getDay(); return g >= 1 && g <= 5; }
@@ -599,6 +654,19 @@ function actualizarHoy() {
     document.getElementById("metaPaladas"),
     null, palCumple
   );
+
+  // Arranque — hora de la 1ª palada del día + cumplimiento (verde ≤ 09:35)
+  const arrEl = document.getElementById("statArranqueLine");
+  if (palHoyCache.length === 0) {
+    arrEl.textContent = "Arranque —";
+    arrEl.style.color = "var(--gray-500)";
+  } else {
+    const prim = new Date(palHoyCache[0].timestamp);
+    const minDia = prim.getHours() * 60 + prim.getMinutes();
+    const aTiempo = minDia <= ARRANQUE_LIMITE_MIN;
+    arrEl.textContent = `Arranque ${fmtHora(palHoyCache[0].timestamp)} ${aTiempo ? "✓" : "✗"}`;
+    arrEl.style.color = aTiempo ? "var(--green)" : "var(--red)";
+  }
 
   // [1][4] KPI Ton Resimple — color según meta
   const hoyKey = fKey(new Date());
@@ -741,7 +809,8 @@ function renderHistorico() {
 
 function renderResumenSemana() {
   const ahora = new Date(), lunes = getLunes(ahora);
-  let palTotal = 0, kgTotal = 0, diasConData = 0, diasTranscurridos = 0;
+  let palTotal = 0, kgTotal = 0, cartonTotal = 0, diasConData = 0, diasTranscurridos = 0;
+  let arrConData = 0, arrATiempo = 0;
   for (let i = 0; i < 5; i++) {
     const d = new Date(lunes); d.setDate(d.getDate() + i);
     if (d > ahora) break;
@@ -750,7 +819,14 @@ function renderResumenSemana() {
     const pal = paladasPorDia[k] || 0;
     const kg  = (fardosPorDia[k] || {}).resimple || 0;
     palTotal += pal; kgTotal += kg;
+    cartonTotal += (cartonPorDia[k] || {}).kg || 0;
     if (pal > 0 || kg > 0) diasConData++;
+    // Arranque: días con paladas, ¿la primera fue a tiempo?
+    const prim = primeraPaladaPorDia[k];
+    if (prim) {
+      arrConData++;
+      if (prim.getHours() * 60 + prim.getMinutes() <= ARRANQUE_LIMITE_MIN) arrATiempo++;
+    }
   }
   const dias = Math.max(diasConData, 1);
   const metaPalP = diasTranscurridos * metaPaladas;
@@ -760,13 +836,21 @@ function renderResumenSemana() {
   document.getElementById("hSemPalTotalMeta").textContent  = `${pc(palTotal, metaPalP)}% · ${formatN(palTotal)}/${formatN(metaPalP)} · ${diasTranscurridos}/5 días`;
   document.getElementById("hSemKgTotal").textContent      = formatTon(kgTotal);
   document.getElementById("hSemKgTotalMeta").textContent   = `${pc(kgTotal, metaKgP)}% · ${formatTon(kgTotal)}/${Math.round(metaKgP/1000)} · ${diasTranscurridos}/5 días`;
+
+  // Arranque a tiempo: % de días con paladas que arrancaron ≤ 09:35
+  document.getElementById("hSemArr").textContent = arrConData ? `${pc(arrATiempo, arrConData)}%` : "—";
+  document.getElementById("hSemArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ 09:35` : "Sin paladas";
+
+  // Cartón: total ton de la semana (meta proporcional si está configurada)
+  renderCartonCard("hSemCarton", "hSemCartonMeta", cartonTotal, diasTranscurridos);
 }
 
 function renderResumenMes() {
   const ahora = new Date();
   document.getElementById("hMesTitulo").textContent = MESES_ES[ahora.getMonth()];
   const dlm = diasLaboralesMes(ahora.getFullYear(), ahora.getMonth());
-  let palTotal = 0, kgTotal = 0, diasLabT = 0, diasConData = 0;
+  let palTotal = 0, kgTotal = 0, cartonTotal = 0, diasLabT = 0, diasConData = 0;
+  let arrConData = 0, arrATiempo = 0;
   for (let d = 1; d <= ahora.getDate(); d++) {
     const fecha = new Date(ahora.getFullYear(), ahora.getMonth(), d);
     if (!esLaboral(fecha)) continue;
@@ -775,7 +859,13 @@ function renderResumenMes() {
     const pal = paladasPorDia[k] || 0;
     const kg  = (fardosPorDia[k] || {}).resimple || 0;
     palTotal += pal; kgTotal += kg;
+    cartonTotal += (cartonPorDia[k] || {}).kg || 0;
     if (pal > 0 || kg > 0) diasConData++;
+    const prim = primeraPaladaPorDia[k];
+    if (prim) {
+      arrConData++;
+      if (prim.getHours() * 60 + prim.getMinutes() <= ARRANQUE_LIMITE_MIN) arrATiempo++;
+    }
   }
   const dias = Math.max(diasConData, 1);
   const metaPalP = diasLabT * metaPaladas;
@@ -785,6 +875,24 @@ function renderResumenMes() {
   document.getElementById("hMesPalTotalMeta").textContent  = `${pc(palTotal, metaPalP)}% · ${formatN(palTotal)}/${formatN(metaPalP)} · ${diasLabT}/${dlm} días`;
   document.getElementById("hMesKgTotal").textContent      = formatTon(kgTotal);
   document.getElementById("hMesKgTotalMeta").textContent   = `${pc(kgTotal, metaKgP)}% · ${formatTon(kgTotal)}/${Math.round(metaKgP/1000)} · ${diasLabT}/${dlm} días`;
+
+  document.getElementById("hMesArr").textContent = arrConData ? `${pc(arrATiempo, arrConData)}%` : "—";
+  document.getElementById("hMesArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ 09:35` : "Sin paladas";
+
+  renderCartonCard("hMesCarton", "hMesCartonMeta", cartonTotal, diasLabT);
+}
+
+// Llena una card de cartón del histórico. Si hay meta_diaria configurada,
+// muestra % y meta proporcional; si no, solo el total en toneladas.
+function renderCartonCard(idValor, idMeta, kgTotal, nDias) {
+  document.getElementById(idValor).textContent = formatTon(kgTotal);
+  const metaEl = document.getElementById(idMeta);
+  if (metaCarton > 0) {
+    const metaP = metaCarton * nDias;
+    metaEl.textContent = `${pc(kgTotal, metaP)}% · ${formatTon(kgTotal)}/${Math.round(metaP/1000)} t`;
+  } else {
+    metaEl.textContent = `${formatTon(kgTotal)} t · sin meta`;
+  }
 }
 
 // ─── Builders de barras ───
