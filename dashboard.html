@@ -1104,7 +1104,7 @@
     function filaPaladas() {
       const cels = dd.map(d => d && d.paladas ? cel(fmt0(d.paladas.paladas), dotClase(d.paladas.paladas, C.metaPaladas)) : '<td class="kpi-cell">–</td>').join('');
       const tot = (p, sep) => p && p.paladas ? celT(fmt0(p.paladas.paladas), dotClase(p.paladas.paladas, C.metaPaladas * (p.nDias || 5)), sep || '') : `<td class="col-total ${sep||''}">–</td>`;
-      return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">125/día</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
+      return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">${fmt0(C.metaPaladas)}/día</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
     }
     // Cartón (t): semáforo vs meta diaria; si no hay meta configurada → sin color (dot-gray)
     function filaCartonTon() {
@@ -1124,7 +1124,7 @@
     }
     // Camiones recibidos: informativa, sin semáforo
     function filaCartonCamiones() {
-      return filaInfo('Camiones recibidos',
+      return filaInfo('Camiones recibidos andén',
         d => d && d.carton ? fmt0(d.carton.camiones) : null,
         p => p && p.carton ? fmt0(p.carton.camiones) : null);
     }
@@ -1143,8 +1143,8 @@
         ${filaNFardos()}
         <tr class="group-row"><td colspan="12">Funcionamiento de la línea</td></tr>
         ${filaPct('Disponibilidad', C.metaDisp, d => d && d.disponibilidad && d.disponibilidad.pct, p => p.disponibilidad && p.disponibilidad.pct, v => fmt0(v) + '%')}
-        ${filaPalada('1ª palada', '≤ 9:30', d => d && d.operacion && d.operacion.primera, d => d && d.operacion ? d.operacion.cumplePrimera : null, p => p.operacion && p.operacion.cumplePrimera)}
-        ${filaPalada('Última palada', '≥ fin−10m', d => d && d.operacion && d.operacion.ultima, d => d && d.operacion ? d.operacion.cumpleUltima : null, p => p.operacion && p.operacion.cumpleUltima)}
+        ${filaPalada('1ª palada', `≤ ${minAhhmm(C.horaInicio + C.tolPrimera)}`, d => d && d.operacion && d.operacion.primera, d => d && d.operacion ? d.operacion.cumplePrimera : null, p => p.operacion && p.operacion.cumplePrimera)}
+        ${filaPalada('Última palada', `≥ fin−${fmt0(C.margenUltima)}m`, d => d && d.operacion && d.operacion.ultima, d => d && d.operacion ? d.operacion.cumpleUltima : null, p => p.operacion && p.operacion.cumpleUltima)}
         <tr class="group-row"><td colspan="12">Entrada</td></tr>
         ${filaPaladas()}
         ${filaPct('Faresín alimentando', C.metaUsoFaresin, d => d && d.usoFaresin && d.usoFaresin.pct.alimentando, p => p.usoFaresin && p.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
@@ -1161,7 +1161,7 @@
     const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
     // C.horariosFin: array lun..dom con "HH:mm" o "off"
     const partes = dias.map((d, i) => `${d} ${C.horariosFin[i]}`);
-    return `Horario teórico de fin de operación: ${partes.join(' · ')}. Inicio de turno 9:30.`;
+    return `Horario teórico de fin de operación: ${partes.join(' · ')}. Inicio de turno ${minAhhmm(C.horaInicio)}.`;
   }
 
   // Gráficos reutilizables
@@ -1348,7 +1348,7 @@
     function filaPaladas() {
       const cels = ss.map(s => s && s.paladas ? cel(fmt0(s.paladas.paladas), dotClase(s.paladas.paladas, C.metaPaladas * (s.nDias || 5))) : '<td class="kpi-cell">–</td>').join('');
       const tt = (p, sep) => p && p.paladas ? celT(fmt0(p.paladas.paladas), dotClase(p.paladas.paladas, C.metaPaladas * (p.nDias || 20)), sep) : `<td class="col-total ${sep||''}">–</td>`;
-      return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">125/día</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+      return `<tr><td class="kpi-name">Paladas</td><td class="kpi-meta">${fmt0(C.metaPaladas)}/día</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
     }
     function filaCartonTon() {
       const hayMeta = C.metaCarton != null;
@@ -1365,7 +1365,7 @@
       };
       return `<tr><td class="kpi-name">Cartón (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
     }
-    const filaCartonCamiones = () => filaInfoMes('Camiones recibidos', p => p.carton ? fmt0(p.carton.camiones) : null);
+    const filaCartonCamiones = () => filaInfoMes('Camiones recibidos andén', p => p.carton ? fmt0(p.carton.camiones) : null);
 
     const html = `
       <thead><tr>
