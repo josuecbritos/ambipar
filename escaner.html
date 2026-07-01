@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WMS Fardos — PoC</title>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<style>
+  :root{
+    --fondo:#14181d; --panel:#1e242b; --borde:#313a44;
+    --texto:#e8ecf0; --texto2:#8a97a3;
+    --ingreso:#2e9e5b; --retiro:#d9822b; --inventario:#3d7dd8;
+    --error:#d84a4a; --ok:#2e9e5b;
+  }
+  *{box-sizing:border-box; margin:0; -webkit-tap-highlight-color:transparent}
+  body{background:var(--fondo); color:var(--texto);
+       font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+       min-height:100vh; padding:16px; max-width:520px; margin:0 auto}
+  h1{font-size:1.15rem; letter-spacing:.08em; text-transform:uppercase;
+     color:var(--texto2); font-weight:600; margin-bottom:20px}
+  h1 b{color:var(--texto)}
+  .oculto{display:none!important}
+
+  /* Botones grandes de operación */
+  .btn-op{display:block; width:100%; padding:22px 18px; margin-bottom:14px;
+          border:none; border-radius:14px; font-size:1.35rem; font-weight:700;
+          color:#fff; cursor:pointer; text-align:left}
+  .btn-op small{display:block; font-size:.8rem; font-weight:400; opacity:.85; margin-top:4px}
+  .op-ingreso{background:var(--ingreso)} .op-retiro{background:var(--retiro)}
+  .op-inventario{background:var(--inventario)}
+  .btn-sec{display:inline-block; padding:12px 16px; margin:4px 6px 0 0;
+           background:var(--panel); border:1px solid var(--borde); border-radius:10px;
+           color:var(--texto); font-size:.95rem; cursor:pointer}
+
+  /* Escáner */
+  .visor{position:relative; border-radius:14px; overflow:hidden;
+         background:#000; aspect-ratio:3/4}
+  video{width:100%; height:100%; object-fit:cover}
+  .marco{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+         pointer-events:none}
+  .marco div{width:65%; aspect-ratio:1; border:3px solid rgba(255,255,255,.85);
+             border-radius:12px; box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
+  .cinta{position:absolute; bottom:0; left:0; right:0; padding:10px 14px;
+         background:rgba(0,0,0,.65); font-size:.9rem; color:#fff; text-align:center}
+  .modo-tag{display:inline-block; padding:6px 14px; border-radius:999px;
+            font-size:.85rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:.06em; color:#fff; margin-bottom:12px}
+
+  /* Tarjetas y formularios */
+  .tarjeta{background:var(--panel); border:1px solid var(--borde);
+           border-radius:14px; padding:16px; margin-top:14px}
+  .tarjeta h3{font-size:1.05rem; margin-bottom:10px}
+  .dato{display:flex; justify-content:space-between; padding:6px 0;
+        border-bottom:1px solid var(--borde); font-size:.95rem}
+  .dato:last-child{border-bottom:none}
+  .dato span:first-child{color:var(--texto2)}
+  input[type=text]{width:100%; padding:14px; border-radius:10px; margin-top:8px;
+        border:1px solid var(--borde); background:var(--fondo); color:var(--texto);
+        font-size:1.05rem}
+  .btn-conf{width:100%; padding:16px; margin-top:12px; border:none; border-radius:12px;
+            font-size:1.1rem; font-weight:700; color:#fff; cursor:pointer}
+  .aviso{margin-top:12px; padding:12px 14px; border-radius:10px; font-size:.95rem}
+  .aviso.err{background:rgba(216,74,74,.15); border:1px solid var(--error); color:#f0a0a0}
+  .aviso.ok{background:rgba(46,158,91,.15); border:1px solid var(--ok); color:#9fd8b6}
+
+  /* Inventario */
+  .contador{font-size:3rem; font-weight:800; text-align:center; padding:10px 0}
+  .contador small{display:block; font-size:.85rem; color:var(--texto2); font-weight:400}
+
+  /* Tablas */
+  table{width:100%; border-collapse:collapse; font-size:.85rem; margin-top:12px}
+  th,td{padding:8px 6px; text-align:left; border-bottom:1px solid var(--borde)}
+  th{color:var(--texto2); font-weight:600; text-transform:uppercase;
+     font-size:.7rem; letter-spacing:.05em}
+  .pill{padding:2px 8px; border-radius:999px; font-size:.75rem; font-weight:600}
+  .pill.bodega{background:rgba(46,158,91,.2); color:#7fd0a0}
+  .pill.fuera{background:rgba(138,151,163,.2); color:var(--texto2)}
+  .cargando{color:var(--texto2); padding:20px; text-align:center}
+</style>
+</head>
+<body>
+
+<h1><b>WMS Fardos</b> · Prueba de concepto</h1>
+
+<!-- ==================== PANTALLA INICIO ==================== -->
+<div id="p-inicio">
+  <button class="btn-op op-ingreso" onclick="irEscaner('ingreso')">
+    Ingresar<small>Escanear fardos que entran a bodega</small></button>
+  <button class="btn-op op-retiro" onclick="irEscaner('retiro')">
+    Retirar<small>Escanear fardos que salen</small></button>
+  <button class="btn-op op-inventario" onclick="irEscaner('inventario')">
+    Inventariar<small>Barrido y comparación contra el sistema</small></button>
+  <button class="btn-sec" onclick="verStock()">📦 Ver stock</button>
+  <button class="btn-sec" onclick="verHistorial()">🕒 Historial</button>
+</div>
+
+<!-- ==================== PANTALLA ESCÁNER ==================== -->
+<div id="p-escaner" class="oculto">
+  <span id="modo-tag" class="modo-tag"></span>
+  <button class="btn-sec" style="float:right" onclick="volverInicio()">✕ Salir</button>
+
+  <div id="ubicacion-box" class="tarjeta oculto">
+    <h3>Ubicación de destino</h3>
+    <input type="text" id="in-ubicacion" placeholder="Ej: Zona A - Rack 3">
+    <button class="btn-conf" style="background:var(--ingreso)" onclick="fijarUbicacion()">
+      Empezar a escanear</button>
+  </div>
+
+  <div id="visor-box" class="oculto">
+    <div class="visor">
+      <video id="video" playsinline muted></video>
+      <div class="marco"><div></div></div>
+      <div class="cinta" id="cinta">Apuntá al QR del fardo</div>
+    </div>
+
+    <div id="inv-contador" class="contador oculto">0<small>fardos escaneados</small></div>
+
+    <div id="confirmacion" class="tarjeta oculto">
+      <h3 id="conf-titulo"></h3>
+      <div id="conf-datos"></div>
+      <button class="btn-conf" id="btn-confirmar"></button>
+      <button class="btn-sec" style="width:100%; margin-top:8px" onclick="descartar()">Descartar</button>
+    </div>
+
+    <div id="resultado"></div>
+
+    <div class="tarjeta">
+      <h3>¿No lee el QR?</h3>
+      <input type="text" id="in-manual" placeholder="Tecleá el ID (ej: 10493)">
+      <button class="btn-conf" style="background:var(--panel); border:1px solid var(--borde)"
+              onclick="entradaManual()">Buscar por ID</button>
+    </div>
+
+    <button id="btn-fin-inv" class="btn-conf oculto"
+            style="background:var(--inventario)" onclick="finalizarInventario()">
+      Finalizar inventario y ver reporte</button>
+  </div>
+
+  <div id="inv-reporte"></div>
+</div>
+
+<!-- ==================== PANTALLA STOCK / HISTORIAL ==================== -->
+<div id="p-tabla" class="oculto">
+  <button class="btn-sec" onclick="volverInicio()">← Volver</button>
+  <div class="tarjeta">
+    <h3 id="tabla-titulo"></h3>
+    <input type="text" id="in-filtro" class="oculto" placeholder="Filtrar por ID, tipo o ubicación…"
+           oninput="filtrarStock()">
+    <div id="tabla-cont" class="cargando">Cargando…</div>
+  </div>
+</div>
+
+<script>
+/* ============================ CONFIGURACIÓN ============================ */
+// Pegar acá la URL de la implementación del Apps Script (termina en /exec)
+const SCRIPT_URL = 'PEGAR_URL_DEL_APPS_SCRIPT_AQUI';
+// Nombre del operario que aparece en el historial (cambiar por dispositivo)
+const USUARIO = 'operario-1';
+
+/* ============================ ESTADO GLOBAL ============================ */
+let modo = null;              // 'ingreso' | 'retiro' | 'inventario'
+let ubicacion = '';           // destino en modo ingreso
+let fardoPendiente = null;    // fardo esperando confirmación
+let escaneando = false;
+let pausado = false;          // pausa breve tras cada lectura
+let invIds = new Set();       // acumulador de inventario
+let stream = null;
+let stockCache = [];
+
+const $ = id => document.getElementById(id);
+const COLORES = { ingreso:'var(--ingreso)', retiro:'var(--retiro)', inventario:'var(--inventario)' };
+
+/* ============================ NAVEGACIÓN =============================== */
+function irEscaner(m){
+  modo = m; fardoPendiente = null; invIds = new Set();
+  $('p-inicio').classList.add('oculto');
+  $('p-escaner').classList.remove('oculto');
+  $('modo-tag').textContent = m;
+  $('modo-tag').style.background = COLORES[m];
+  $('inv-reporte').innerHTML = '';
+  $('resultado').innerHTML = '';
+  $('confirmacion').classList.add('oculto');
+  $('inv-contador').classList.toggle('oculto', m !== 'inventario');
+  $('btn-fin-inv').classList.toggle('oculto', m !== 'inventario');
+  if (m === 'inventario') $('inv-contador').firstChild.textContent = '0';
+
+  if (m === 'ingreso'){                 // pedir ubicación una vez por sesión
+    $('ubicacion-box').classList.remove('oculto');
+    $('visor-box').classList.add('oculto');
+  } else {
+    $('ubicacion-box').classList.add('oculto');
+    $('visor-box').classList.remove('oculto');
+    iniciarCamara();
+  }
+}
+function fijarUbicacion(){
+  ubicacion = $('in-ubicacion').value.trim();
+  if (!ubicacion){ alert('Indicá una ubicación'); return; }
+  $('ubicacion-box').classList.add('oculto');
+  $('visor-box').classList.remove('oculto');
+  iniciarCamara();
+}
+function volverInicio(){
+  detenerCamara();
+  ['p-escaner','p-tabla'].forEach(p => $(p).classList.add('oculto'));
+  $('p-inicio').classList.remove('oculto');
+}
+
+/* ============================ CÁMARA + LECTURA ========================= */
+const lector = new ZXing.QRCodeReader();
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+let frameN = 0;
+
+async function iniciarCamara(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} }
+    });
+    const video = $('video');
+    video.srcObject = stream;
+    await video.play();
+    // Forzar enfoque continuo si el dispositivo lo soporta
+    const track = stream.getVideoTracks()[0];
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if (caps.focusMode && caps.focusMode.includes('continuous')){
+      track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{});
+    }
+    escaneando = true;
+    bucleLectura();
+  }catch(err){
+    $('cinta').textContent = 'Sin acceso a la cámara — usá la entrada manual';
+  }
+}
+function detenerCamara(){
+  escaneando = false;
+  if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+/** Bucle multi-frame: alterna frame crudo y frame con contraste reforzado. */
+function bucleLectura(){
+  if (!escaneando) return;
+  const video = $('video');
+  if (video.readyState === video.HAVE_ENOUGH_DATA && !pausado && !fardoPendiente){
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    frameN++;
+    if (frameN % 2 === 1) preprocesar();   // frames impares: preprocesados
+    try{
+      const fuente = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+      const mapa = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(fuente));
+      const res = lector.decode(mapa);     // lanza excepción si no encuentra QR
+      lector.reset();
+      onLectura(res.getText());
+    }catch(e){ /* frame sin QR legible: seguir intentando */ }
+  }
+  requestAnimationFrame(bucleLectura);
+}
+
+/** Escala de grises + estiramiento de contraste (rescata QR grises/borrosos).
+ *  La binarización adaptativa la aporta HybridBinarizer de ZXing. */
+function preprocesar(){
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = img.data;
+  let min = 255, max = 0;
+  for (let i = 0; i < d.length; i += 4){
+    const g = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114) | 0;
+    d[i] = g;
+    if (g < min) min = g;
+    if (g > max) max = g;
+  }
+  const rango = Math.max(max - min, 1);
+  for (let i = 0; i < d.length; i += 4){
+    const g = ((d[i] - min) * 255 / rango) | 0;
+    d[i] = d[i+1] = d[i+2] = g;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+/* ============================ LÓGICA DE OPERACIÓN ====================== */
+
+/** Parsea el formato: id;fecha;tipo;material;descripcion;peso;. */
+function parsearQR(texto){
+  const c = texto.split(';').map(s => s.trim());
+  if (c.length < 6 || !/^\d+$/.test(c[0])) return null;
+  return { id: c[0], fecha_produccion: c[1], tipo: c[2],
+           material: c[3], descripcion: c[4], peso_kg: c[5] };
+}
+
+function onLectura(texto){
+  const fardo = parsearQR(texto);
+  if (!fardo){
+    aviso('err', 'QR leído pero con formato desconocido: ' + texto.slice(0, 60));
+    pausaBreve(); return;
+  }
+  navigator.vibrate && navigator.vibrate(80);
+
+  if (modo === 'inventario'){
+    if (!invIds.has(fardo.id)){
+      invIds.add(fardo.id);
+      $('inv-contador').firstChild.textContent = invIds.size;
+      $('cinta').textContent = 'Leído: ' + fardo.id + ' ✓';
+    } else {
+      $('cinta').textContent = fardo.id + ' ya escaneado';
+    }
+    pausaBreve(); return;
+  }
+  mostrarConfirmacion(fardo);
+}
+
+function mostrarConfirmacion(fardo){
+  fardoPendiente = fardo;
+  $('conf-titulo').textContent = (modo === 'ingreso' ? 'Ingresar' : 'Retirar') + ' fardo ' + fardo.id;
+  $('conf-datos').innerHTML =
+    fila('Descripción', fardo.descripcion || '—') +
+    fila('Tipo', fardo.tipo || '—') +
+    fila('Peso', fardo.peso_kg ? fardo.peso_kg + ' kg' : '—') +
+    (modo === 'ingreso' ? fila('Destino', ubicacion) : '');
+  const btn = $('btn-confirmar');
+  btn.textContent = modo === 'ingreso' ? 'Confirmar ingreso' : 'Confirmar retiro';
+  btn.style.background = COLORES[modo];
+  btn.onclick = confirmarOperacion;
+  $('confirmacion').classList.remove('oculto');
+}
+const fila = (k, v) => `<div class="dato"><span>${k}</span><span>${v}</span></div>`;
+
+function descartar(){ fardoPendiente = null; $('confirmacion').classList.add('oculto'); }
+
+async function confirmarOperacion(){
+  const fardo = fardoPendiente;
+  $('btn-confirmar').textContent = 'Enviando…';
+  const body = modo === 'ingreso'
+    ? { action:'ingreso', fardo, ubicacion, usuario: USUARIO }
+    : { action:'retiro', id: fardo.id, usuario: USUARIO };
+  const r = await llamarAPI(body);
+  descartar();
+  aviso(r.ok ? 'ok' : 'err', r.ok ? r.mensaje : r.error);
+}
+
+function entradaManual(){
+  const id = $('in-manual').value.trim();
+  if (!id) return;
+  $('in-manual').value = '';
+  // Con entrada manual solo hay ID: la metadata queda vacía (o ya existe en la base)
+  onLectura(id + ';;;;;;');
+}
+
+async function finalizarInventario(){
+  detenerCamara();
+  $('inv-reporte').innerHTML = '<div class="cargando">Comparando contra el sistema…</div>';
+  const r = await llamarAPI({ action:'inventario', ids:[...invIds], usuario: USUARIO });
+  if (!r.ok){ $('inv-reporte').innerHTML = ''; aviso('err', r.error); return; }
+  $('inv-reporte').innerHTML = `
+    <div class="tarjeta"><h3>Reporte de inventario</h3>
+      ${fila('Escaneados', r.escaneados)}
+      ${fila('En sistema (en bodega)', r.en_sistema)}
+      ${fila('Faltantes', r.faltantes.length ? r.faltantes.join(', ') : 'ninguno ✓')}
+      ${fila('Sobrantes', r.sobrantes.length ? r.sobrantes.join(', ') : 'ninguno ✓')}
+    </div>`;
+}
+
+/* ============================ STOCK / HISTORIAL ======================== */
+async function verStock(){
+  abrirTabla('Stock en bodega', true);
+  const r = await llamarAPI(null, 'stock');
+  if (!r.ok){ $('tabla-cont').textContent = r.error; return; }
+  stockCache = r.fardos;
+  pintarStock(stockCache);
+}
+function pintarStock(fardos){
+  const enBodega = fardos.filter(f => f.estado === 'en_bodega');
+  $('tabla-cont').innerHTML = enBodega.length
+    ? `<table><tr><th>ID</th><th>Descripción</th><th>Kg</th><th>Ubicación</th></tr>` +
+      enBodega.map(f => `<tr><td><b>${f.id}</b></td><td>${f.descripcion}</td>
+        <td>${f.peso_kg}</td><td>${f.ubicacion || '—'}</td></tr>`).join('') + '</table>' +
+      `<p style="margin-top:10px;color:var(--texto2);font-size:.85rem">${enBodega.length} fardos en bodega</p>`
+    : '<p class="cargando">Bodega vacía — no hay fardos ingresados todavía.</p>';
+}
+function filtrarStock(){
+  const q = $('in-filtro').value.toLowerCase();
+  pintarStock(stockCache.filter(f =>
+    (f.id + f.tipo + f.descripcion + f.ubicacion).toLowerCase().includes(q)));
+}
+async function verHistorial(){
+  abrirTabla('Últimos movimientos', false);
+  const r = await llamarAPI(null, 'movimientos');
+  if (!r.ok){ $('tabla-cont').textContent = r.error; return; }
+  $('tabla-cont').innerHTML = r.movimientos.length
+    ? `<table><tr><th>Fecha</th><th>Op.</th><th>Fardo</th><th>Usuario</th></tr>` +
+      r.movimientos.map(m => `<tr><td>${new Date(m.fecha).toLocaleString('es')}</td>
+        <td>${m.tipo}</td><td><b>${m.fardo_id}</b></td><td>${m.usuario}</td></tr>`).join('') + '</table>'
+    : '<p class="cargando">Sin movimientos registrados.</p>';
+}
+function abrirTabla(titulo, conFiltro){
+  $('p-inicio').classList.add('oculto');
+  $('p-tabla').classList.remove('oculto');
+  $('tabla-titulo').textContent = titulo;
+  $('in-filtro').classList.toggle('oculto', !conFiltro);
+  $('in-filtro').value = '';
+  $('tabla-cont').innerHTML = '<div class="cargando">Cargando…</div>';
+}
+
+/* ============================ UTILIDADES =============================== */
+async function llamarAPI(body, accionGet){
+  try{
+    const resp = body
+      ? await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(body),
+          headers: { 'Content-Type': 'text/plain' } })   // text/plain evita preflight CORS
+      : await fetch(SCRIPT_URL + '?action=' + accionGet);
+    return await resp.json();
+  }catch(err){
+    return { ok:false, error:'Sin conexión con el servidor: ' + err.message };
+  }
+}
+function aviso(tipo, msj){
+  $('resultado').innerHTML = `<div class="aviso ${tipo}">${msj}</div>`;
+  setTimeout(() => { $('resultado').innerHTML = ''; }, 5000);
+}
+function pausaBreve(){
+  pausado = true;
+  setTimeout(() => { pausado = false; $('cinta').textContent = 'Apuntá al QR del fardo'; }, 1500);
+}
+</script>
+</body>
+</html>
