@@ -460,9 +460,12 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx7x65j3SEx_mNOyGM3H5UJ
 const TOKEN   = "paladas2026";
 const CLIENTE_META     = "Resimple";
 const MATERIAL_RECHAZO = "Rechazo";
-// Arranque a tiempo: 1ª palada del día hasta esta hora (hora_inicio_turno 9:30
+// Arranque a tiempo: 1ª palada del día hasta hora_inicio_turno
 // + tolerancia 5 min, igual criterio que el dashboard). Verde si cumple.
-const ARRANQUE_LIMITE_MIN = 9 * 60 + 35; // 09:35
+// Arranque a tiempo: 1ª palada del día hasta hora_inicio_turno + margen_tolerancia
+// (ambos desde ConfigDetenciones, vía la API). Se recalcula al cargar datos.
+// Fallback 09:30 sin tolerancia hasta que llegue la config.
+let arranqueLimiteMin = 9 * 60 + 30;
 
 const MESES_ES   = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DIAS_CORTO = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"];
@@ -494,6 +497,13 @@ async function cargarDatos() {
     metaPaladas    = Number(data.meta_paladas)     || 125;
     metaKgResimple = Number(data.meta_kg_resimple) || 16000;
     metaCarton     = Number(data.meta_carton)      || 0;
+
+    // Límite de arranque = hora_inicio_turno + margen_tolerancia (en minutos).
+    const hhmm = String(data.hora_inicio_turno || "09:30").match(/^(\d{1,2}):(\d{2})/);
+    if (hhmm) {
+      const base = Number(hhmm[1]) * 60 + Number(hhmm[2]);
+      arranqueLimiteMin = base + (Number(data.margen_tolerancia) || 0);
+    }
 
     paladasPorDia = {};
     primeraPaladaPorDia = {};
@@ -564,6 +574,8 @@ function formatN(n)    { return Number(n).toLocaleString("es-CL"); }
 // [1] Conversión kg → ton con 2 decimales
 function formatTon(kg) { return (kg / 1000).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtHora(ts)   { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+// Formatea minutos-desde-medianoche a "H:mm" (ej. 570 → "9:30"). Para etiquetas.
+function fmtMinDia(min) { return `${Math.floor(min/60)}:${pad(min%60)}`; }
 function getLunes(d) {
   const r = new Date(d), dow = r.getDay();
   r.setDate(r.getDate() + (dow === 0 ? -6 : 1 - dow));
@@ -655,7 +667,7 @@ function actualizarHoy() {
     null, palCumple
   );
 
-  // Arranque — hora de la 1ª palada del día + cumplimiento (verde ≤ 09:35)
+  // Arranque — hora de la 1ª palada del día + cumplimiento (verde si ≤ límite config)
   const arrEl = document.getElementById("statArranqueLine");
   if (palHoyCache.length === 0) {
     arrEl.textContent = "Arranque —";
@@ -663,7 +675,7 @@ function actualizarHoy() {
   } else {
     const prim = new Date(palHoyCache[0].timestamp);
     const minDia = prim.getHours() * 60 + prim.getMinutes();
-    const aTiempo = minDia <= ARRANQUE_LIMITE_MIN;
+    const aTiempo = minDia <= arranqueLimiteMin;
     arrEl.textContent = `Arranque ${fmtHora(palHoyCache[0].timestamp)} ${aTiempo ? "✓" : "✗"}`;
     arrEl.style.color = aTiempo ? "var(--green)" : "var(--red)";
   }
@@ -825,7 +837,7 @@ function renderResumenSemana() {
     const prim = primeraPaladaPorDia[k];
     if (prim) {
       arrConData++;
-      if (prim.getHours() * 60 + prim.getMinutes() <= ARRANQUE_LIMITE_MIN) arrATiempo++;
+      if (prim.getHours() * 60 + prim.getMinutes() <= arranqueLimiteMin) arrATiempo++;
     }
   }
   const dias = Math.max(diasConData, 1);
@@ -837,9 +849,9 @@ function renderResumenSemana() {
   document.getElementById("hSemKgTotal").textContent      = formatTon(kgTotal);
   document.getElementById("hSemKgTotalMeta").textContent   = `${pc(kgTotal, metaKgP)}% · ${formatTon(kgTotal)}/${Math.round(metaKgP/1000)} · ${diasTranscurridos}/5 días`;
 
-  // Arranque a tiempo: % de días con paladas que arrancaron ≤ 09:35
+  // Arranque a tiempo: % de días con paladas cuya 1ª palada ≤ límite config
   document.getElementById("hSemArr").textContent = arrConData ? `${pc(arrATiempo, arrConData)}%` : "—";
-  document.getElementById("hSemArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ 09:35` : "Sin paladas";
+  document.getElementById("hSemArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ ${fmtMinDia(arranqueLimiteMin)}` : "Sin paladas";
 
   // Cartón: total ton de la semana (meta proporcional si está configurada)
   renderCartonCard("hSemCarton", "hSemCartonMeta", cartonTotal, diasTranscurridos);
@@ -864,7 +876,7 @@ function renderResumenMes() {
     const prim = primeraPaladaPorDia[k];
     if (prim) {
       arrConData++;
-      if (prim.getHours() * 60 + prim.getMinutes() <= ARRANQUE_LIMITE_MIN) arrATiempo++;
+      if (prim.getHours() * 60 + prim.getMinutes() <= arranqueLimiteMin) arrATiempo++;
     }
   }
   const dias = Math.max(diasConData, 1);
@@ -877,7 +889,7 @@ function renderResumenMes() {
   document.getElementById("hMesKgTotalMeta").textContent   = `${pc(kgTotal, metaKgP)}% · ${formatTon(kgTotal)}/${Math.round(metaKgP/1000)} · ${diasLabT}/${dlm} días`;
 
   document.getElementById("hMesArr").textContent = arrConData ? `${pc(arrATiempo, arrConData)}%` : "—";
-  document.getElementById("hMesArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ 09:35` : "Sin paladas";
+  document.getElementById("hMesArrMeta").textContent = arrConData ? `${arrATiempo}/${arrConData} días ≤ ${fmtMinDia(arranqueLimiteMin)}` : "Sin paladas";
 
   renderCartonCard("hMesCarton", "hMesCartonMeta", cartonTotal, diasLabT);
 }
