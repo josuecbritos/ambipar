@@ -440,9 +440,6 @@
 
   const DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
-  // Tipo técnico que ancla el día (no se muestra en ninguna parte)
-  const TIPO_ANCLA = "__dia__";
-
   let config = [];        // [{ tipo, kg_unit, grupo }]
   let salida = [];        // tipos grupo "salida"
   let entrada = [];       // tipos grupo "entrada"
@@ -677,9 +674,6 @@
 
   function registrar() {
     const filas = [];
-    // Ancla técnica del día: SIEMPRE se guarda (marca el día como registrado)
-    filas.push({ tipo: TIPO_ANCLA, cantidad: 0, kg: 0, grupo: "" });
-
     // Entrada y salida: una fila por tipo con cantidad > 0
     entrada.forEach((c, i) => {
       const cant = Number(document.getElementById(`ent_${i}`).value) || 0;
@@ -689,6 +683,11 @@
       const cant = Number(document.getElementById(`sal_${i}`).value) || 0;
       if (cant > 0) filas.push({ tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit), grupo: "salida" });
     });
+
+    if (filas.length === 0) {
+      setStatus("Ingrese al menos una cantidad", "error");
+      return;
+    }
 
     filasPendientes = filas;
     abrirModal(filas);
@@ -939,8 +938,6 @@
 
     const ts = new Date().toISOString();
     const filas = [];
-    // Ancla técnica: siempre
-    filas.push({ id: crypto.randomUUID(), tipo: TIPO_ANCLA, cantidad: 0, kg: 0, grupo: "", timestamp: ts });
 
     entrada.forEach((c, i) => {
       const cant = Number(document.getElementById(`edE_${i}`).value) || 0;
@@ -950,6 +947,11 @@
       const cant = Number(document.getElementById(`edS_${i}`).value) || 0;
       if (cant > 0) filas.push({ id: crypto.randomUUID(), tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit), grupo: "salida", timestamp: ts });
     });
+
+    if (filas.length === 0) {
+      setStatus("Ingrese al menos una cantidad", "error");
+      return;
+    }
 
     cerrarModalEdit();
 
