@@ -3,157 +3,278 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>WMS Fardos — PoC</title>
+<title>WMS Fardos — Bodega Virtual</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <style>
-  :root{
-    --fondo:#14181d; --panel:#1e242b; --borde:#313a44;
-    --texto:#e8ecf0; --texto2:#8a97a3;
-    --ingreso:#2e9e5b; --retiro:#d9822b; --inventario:#3d7dd8;
-    --error:#d84a4a; --ok:#2e9e5b;
+  :root {
+    --green:        #00873D;
+    --green-dark:   #006830;
+    --green-light:  #e8f5ee;
+    --green-mid:    #b8dfc8;
+    --white:        #ffffff;
+    --gray-50:      #f4f5f4;
+    --gray-100:     #eaecea;
+    --gray-300:     #c8cdc8;
+    --gray-500:     #7a877a;
+    --gray-800:     #1e271e;
+    --yellow:       #f5a623;
+    --yellow-light: #fff8ee;
+    --orange:       #e07a30;
+    --orange-light: #fdf3ea;
+    --red:          #c0392b;
+    --red-light:    #fdf0ee;
+    --blue:         #2b6cb0;
+    --blue-light:   #ebf4ff;
+    --shadow:       0 4px 24px rgba(0,87,40,0.13);
+    --radius:       16px;
+    --radius-sm:    8px;
   }
-  *{box-sizing:border-box; margin:0; -webkit-tap-highlight-color:transparent}
-  body{background:var(--fondo); color:var(--texto);
-       font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-       min-height:100vh; padding:16px; max-width:520px; margin:0 auto}
-  h1{font-size:1.15rem; letter-spacing:.08em; text-transform:uppercase;
-     color:var(--texto2); font-weight:600; margin-bottom:20px}
-  h1 b{color:var(--texto)}
-  .oculto{display:none!important}
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100dvh; }
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--gray-50); color: var(--gray-800);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .oculto { display: none !important; }
 
-  /* Botones grandes de operación */
-  .btn-op{display:block; width:100%; padding:22px 18px; margin-bottom:14px;
-          border:none; border-radius:14px; font-size:1.35rem; font-weight:700;
-          color:#fff; cursor:pointer; text-align:left}
-  .btn-op small{display:block; font-size:.8rem; font-weight:400; opacity:.85; margin-top:4px}
-  .op-ingreso{background:var(--ingreso)} .op-retiro{background:var(--retiro)}
-  .op-inventario{background:var(--inventario)}
-  .btn-sec{display:inline-block; padding:12px 16px; margin:4px 6px 0 0;
-           background:var(--panel); border:1px solid var(--borde); border-radius:10px;
-           color:var(--texto); font-size:.95rem; cursor:pointer}
+  /* ── TOPBAR ── */
+  .topbar {
+    width: 100%; background: #BDFE00; padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .topbar-logo  { height: 28px; }
+  .topbar-sep   { width: 1px; height: 20px; background: rgba(0,0,0,0.25); }
+  .topbar-title { font-size: 11px; font-weight: 700; color: #1e271e; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.3; }
 
-  /* Escáner */
-  .visor{position:relative; border-radius:14px; overflow:hidden;
-         background:#000; aspect-ratio:3/4}
-  video{width:100%; height:100%; object-fit:cover}
-  .marco{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-         pointer-events:none}
-  .marco div{width:65%; aspect-ratio:1; border:3px solid rgba(255,255,255,.85);
-             border-radius:12px; box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
-  .cinta{position:absolute; bottom:0; left:0; right:0; padding:10px 14px;
-         background:rgba(0,0,0,.65); font-size:.9rem; color:#fff; text-align:center}
-  .modo-tag{display:inline-block; padding:6px 14px; border-radius:999px;
-            font-size:.85rem; font-weight:700; text-transform:uppercase;
-            letter-spacing:.06em; color:#fff; margin-bottom:12px}
+  /* ── CARD ── */
+  .card {
+    background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+    width: calc(100% - 32px); max-width: 460px; margin: 12px 0; padding: 16px 18px 18px;
+  }
+  .label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px; }
 
-  /* Tarjetas y formularios */
-  .tarjeta{background:var(--panel); border:1px solid var(--borde);
-           border-radius:14px; padding:16px; margin-top:14px}
-  .tarjeta h3{font-size:1.05rem; margin-bottom:10px}
-  .dato{display:flex; justify-content:space-between; padding:6px 0;
-        border-bottom:1px solid var(--borde); font-size:.95rem}
-  .dato:last-child{border-bottom:none}
-  .dato span:first-child{color:var(--texto2)}
-  input[type=text]{width:100%; padding:14px; border-radius:10px; margin-top:8px;
-        border:1px solid var(--borde); background:var(--fondo); color:var(--texto);
-        font-size:1.05rem}
-  .btn-conf{width:100%; padding:16px; margin-top:12px; border:none; border-radius:12px;
-            font-size:1.1rem; font-weight:700; color:#fff; cursor:pointer}
-  .aviso{margin-top:12px; padding:12px 14px; border-radius:10px; font-size:.95rem}
-  .aviso.err{background:rgba(216,74,74,.15); border:1px solid var(--error); color:#f0a0a0}
-  .aviso.ok{background:rgba(46,158,91,.15); border:1px solid var(--ok); color:#9fd8b6}
+  /* ── BOTONES DE OPERACIÓN ── */
+  .btn-op {
+    display: block; width: 100%; padding: 18px 16px; margin-bottom: 10px;
+    border: none; border-radius: var(--radius-sm); cursor: pointer; text-align: left;
+    font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 800;
+    color: var(--white); letter-spacing: 0.02em; transition: transform 0.1s, filter 0.15s;
+  }
+  .btn-op:active { transform: scale(0.985); filter: brightness(0.94); }
+  .btn-op small { display: block; font-size: 11px; font-weight: 600; opacity: 0.9; margin-top: 3px; letter-spacing: 0; }
+  .op-ingreso    { background: var(--green); }
+  .op-retiro     { background: var(--orange); }
+  .op-inventario { background: var(--blue); }
 
-  /* Inventario */
-  .contador{font-size:3rem; font-weight:800; text-align:center; padding:10px 0}
-  .contador small{display:block; font-size:.85rem; color:var(--texto2); font-weight:400}
+  .row-sec { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .btn-sec {
+    padding: 10px 12px; background: var(--gray-50); border: none;
+    border-radius: var(--radius-sm); cursor: pointer;
+    font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--gray-500); letter-spacing: 0.04em; transition: all 0.2s;
+  }
+  .btn-sec:active { background: var(--white); color: var(--green); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
-  /* Tablas */
-  table{width:100%; border-collapse:collapse; font-size:.85rem; margin-top:12px}
-  th,td{padding:8px 6px; text-align:left; border-bottom:1px solid var(--borde)}
-  th{color:var(--texto2); font-weight:600; text-transform:uppercase;
-     font-size:.7rem; letter-spacing:.05em}
-  .pill{padding:2px 8px; border-radius:999px; font-size:.75rem; font-weight:600}
-  .pill.bodega{background:rgba(46,158,91,.2); color:#7fd0a0}
-  .pill.fuera{background:rgba(138,151,163,.2); color:var(--texto2)}
-  .cargando{color:var(--texto2); padding:20px; text-align:center}
+  /* ── CABECERA DE MODO ── */
+  .modo-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .modo-tag {
+    padding: 6px 14px; border-radius: 999px;
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--white);
+  }
+  .modo-tag.ingreso    { background: var(--green); }
+  .modo-tag.retiro     { background: var(--orange); }
+  .modo-tag.inventario { background: var(--blue); }
+  .btn-salir {
+    background: none; border: none; padding: 6px; cursor: pointer;
+    font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--gray-500); letter-spacing: 0.04em;
+  }
+  .btn-salir:active { color: var(--red); }
+
+  /* ── VISOR ── */
+  .visor { position: relative; border-radius: var(--radius-sm); overflow: hidden; background: #10140f; aspect-ratio: 3/4; }
+  video { width: 100%; height: 100%; object-fit: cover; }
+  .marco { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .marco div {
+    width: 65%; aspect-ratio: 1; border: 3px solid #BDFE00;
+    border-radius: 10px; box-shadow: 0 0 0 2000px rgba(16,20,15,0.35);
+  }
+  .cinta {
+    position: absolute; bottom: 0; left: 0; right: 0; padding: 9px 14px;
+    background: rgba(30,39,30,0.75); font-size: 12px; font-weight: 600;
+    color: var(--white); text-align: center; letter-spacing: 0.02em;
+  }
+
+  /* ── SECCIONES / FORMULARIOS ── */
+  .seccion { background: var(--gray-50); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 12px; }
+  .seccion h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--gray-800); }
+  input[type=text] {
+    width: 100%; padding: 12px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-100); background: var(--white); color: var(--gray-800);
+    font-family: 'Roboto Mono', monospace; font-size: 15px;
+  }
+  input[type=text]::placeholder { font-family: 'Montserrat', sans-serif; font-size: 13px; color: var(--gray-300); }
+  input[type=text]:focus { outline: 2px solid var(--green-mid); border-color: var(--green); }
+
+  .btn-conf {
+    width: 100%; padding: 14px; margin-top: 10px; border: none; border-radius: var(--radius-sm);
+    font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 800;
+    color: var(--white); cursor: pointer; letter-spacing: 0.03em; transition: filter 0.15s;
+  }
+  .btn-conf:active { filter: brightness(0.92); }
+  .btn-conf.gris { background: var(--white); color: var(--gray-500); border: 1px solid var(--gray-100); }
+
+  /* ── DATOS DEL FARDO ── */
+  .dato { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--gray-100); }
+  .dato:last-child { border-bottom: none; }
+  .dato span:first-child { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-500); }
+  .dato span:last-child  { font-family: 'Roboto Mono', monospace; font-size: 13px; font-weight: 500; color: var(--gray-800); text-align: right; }
+
+  /* ── ALERTAS ── */
+  .alert-box {
+    border-radius: var(--radius-sm); padding: 10px 14px; margin-top: 12px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 600;
+  }
+  .alert-box.green { background: var(--green-light); color: var(--green-dark); }
+  .alert-box.red   { background: var(--red-light); color: var(--red); }
+  .alert-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; animation: pulse 2s infinite; }
+  .green .alert-dot { background: var(--green); }
+  .red   .alert-dot { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── CONTADOR INVENTARIO ── */
+  .contador { text-align: center; padding: 12px 0 4px; }
+  .contador .num { font-family: 'Roboto Mono', monospace; font-size: clamp(34px, 9vw, 48px); font-weight: 500; line-height: 1; color: var(--blue); }
+  .contador small { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-500); margin-top: 4px; }
+
+  /* ── LISTAS (stock / historial) ── */
+  .lista { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+  .item {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: var(--gray-50); border-radius: var(--radius-sm);
+    border-left: 3px solid var(--green); padding: 8px 10px;
+    animation: slideIn 0.2s ease;
+  }
+  .item.op-retiro-b     { border-left-color: var(--orange); }
+  .item.op-inventario-b { border-left-color: var(--blue); }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+  .item-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .item-id   { font-family: 'Roboto Mono', monospace; font-size: 13px; font-weight: 500; color: var(--gray-800); }
+  .item-sub  { font-size: 9px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.5; }
+  .item-kg   { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--green); font-weight: 500; white-space: nowrap; }
+  .total-line { font-size: 10px; font-weight: 700; color: var(--gray-500); letter-spacing: 0.06em; text-transform: uppercase; text-align: center; margin-top: 10px; }
+  .empty-state { text-align: center; color: var(--gray-500); font-size: 11px; font-weight: 600; padding: 14px 0; }
+
+  /* ── REPORTE INVENTARIO ── */
+  .hist-block { border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 12px; }
+  .hist-block.semana { background: var(--green-light); }
+  .hist-block-title { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-dark); margin-bottom: 6px; }
+  .hist-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .hist-card { background: var(--white); border-radius: 6px; padding: 8px 6px; text-align: center; }
+  .hist-card-label { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-500); margin-bottom: 2px; }
+  .hist-card-value { font-family: 'Roboto Mono', monospace; font-size: 20px; font-weight: 500; color: var(--green); }
+  .hist-card-value.mal { color: var(--red); }
+  .hist-detail { font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--gray-800); margin-top: 6px; word-break: break-word; }
+
+  /* ── SKELETON ── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+    background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; height: 44px; margin-top: 8px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 </style>
 </head>
 <body>
 
-<h1><b>WMS Fardos</b> · Prueba de concepto</h1>
-
-<!-- ==================== PANTALLA INICIO ==================== -->
-<div id="p-inicio">
-  <button class="btn-op op-ingreso" onclick="irEscaner('ingreso')">
-    Ingresar<small>Escanear fardos que entran a bodega</small></button>
-  <button class="btn-op op-retiro" onclick="irEscaner('retiro')">
-    Retirar<small>Escanear fardos que salen</small></button>
-  <button class="btn-op op-inventario" onclick="irEscaner('inventario')">
-    Inventariar<small>Barrido y comparación contra el sistema</small></button>
-  <button class="btn-sec" onclick="verStock()">📦 Ver stock</button>
-  <button class="btn-sec" onclick="verHistorial()">🕒 Historial</button>
+<div class="topbar">
+  <img class="topbar-logo" src="https://raw.githubusercontent.com/josuecbritos/ambipar/main/paladas/ambipar-logo.png" alt="Ambipar">
+  <div class="topbar-sep"></div>
+  <div class="topbar-title">WMS Fardos<br>Bodega Virtual</div>
 </div>
 
-<!-- ==================== PANTALLA ESCÁNER ==================== -->
-<div id="p-escaner" class="oculto">
-  <span id="modo-tag" class="modo-tag"></span>
-  <button class="btn-sec" style="float:right" onclick="volverInicio()">✕ Salir</button>
+<div class="card">
 
-  <div id="ubicacion-box" class="tarjeta oculto">
-    <h3>Ubicación de destino</h3>
-    <input type="text" id="in-ubicacion" placeholder="Ej: Zona A - Rack 3">
-    <button class="btn-conf" style="background:var(--ingreso)" onclick="fijarUbicacion()">
-      Empezar a escanear</button>
+  <!-- ==================== PANTALLA INICIO ==================== -->
+  <div id="p-inicio">
+    <div class="label">Operaciones</div>
+    <button class="btn-op op-ingreso" onclick="irEscaner('ingreso')">
+      Ingresar<small>Escanear fardos que entran a bodega</small></button>
+    <button class="btn-op op-retiro" onclick="irEscaner('retiro')">
+      Retirar<small>Escanear fardos que salen</small></button>
+    <button class="btn-op op-inventario" onclick="irEscaner('inventario')">
+      Inventariar<small>Barrido y comparación contra el sistema</small></button>
+    <div class="row-sec">
+      <button class="btn-sec" onclick="verStock()">📦 STOCK</button>
+      <button class="btn-sec" onclick="verHistorial()">🕒 HISTORIAL</button>
+    </div>
   </div>
 
-  <div id="visor-box" class="oculto">
-    <div class="visor">
-      <video id="video" playsinline muted></video>
-      <div class="marco"><div></div></div>
-      <div class="cinta" id="cinta">Apuntá al QR del fardo</div>
+  <!-- ==================== PANTALLA ESCÁNER ==================== -->
+  <div id="p-escaner" class="oculto">
+    <div class="modo-head">
+      <span id="modo-tag" class="modo-tag"></span>
+      <button class="btn-salir" onclick="volverInicio()">✕ SALIR</button>
     </div>
 
-    <div id="inv-contador" class="contador oculto">0<small>fardos escaneados</small></div>
-
-    <div id="confirmacion" class="tarjeta oculto">
-      <h3 id="conf-titulo"></h3>
-      <div id="conf-datos"></div>
-      <button class="btn-conf" id="btn-confirmar"></button>
-      <button class="btn-sec" style="width:100%; margin-top:8px" onclick="descartar()">Descartar</button>
+    <div id="ubicacion-box" class="seccion oculto" style="margin-top:0">
+      <h3>Ubicación de destino</h3>
+      <input type="text" id="in-ubicacion" placeholder="Ej: Zona A - Rack 3">
+      <button class="btn-conf op-ingreso" onclick="fijarUbicacion()">Empezar a escanear</button>
     </div>
 
-    <div id="resultado"></div>
+    <div id="visor-box" class="oculto">
+      <div class="visor">
+        <video id="video" playsinline muted></video>
+        <div class="marco"><div></div></div>
+        <div class="cinta" id="cinta">Apunte al QR del fardo</div>
+      </div>
 
-    <div class="tarjeta">
-      <h3>¿No lee el QR?</h3>
-      <input type="text" id="in-manual" placeholder="Tecleá el ID (ej: 10493)">
-      <button class="btn-conf" style="background:var(--panel); border:1px solid var(--borde)"
-              onclick="entradaManual()">Buscar por ID</button>
+      <div id="inv-contador" class="contador oculto">
+        <span class="num">0</span><small>fardos escaneados</small>
+      </div>
+
+      <div id="confirmacion" class="seccion oculto">
+        <h3 id="conf-titulo"></h3>
+        <div id="conf-datos"></div>
+        <button class="btn-conf" id="btn-confirmar"></button>
+        <button class="btn-conf gris" onclick="descartar()">Descartar</button>
+      </div>
+
+      <div id="resultado"></div>
+
+      <div class="seccion">
+        <h3>¿No lee el QR?</h3>
+        <input type="text" id="in-manual" placeholder="Escriba el ID (ej: 10493)">
+        <button class="btn-conf gris" onclick="entradaManual()">Buscar por ID</button>
+      </div>
+
+      <button id="btn-fin-inv" class="btn-conf op-inventario oculto"
+              onclick="finalizarInventario()">Finalizar inventario y ver reporte</button>
     </div>
 
-    <button id="btn-fin-inv" class="btn-conf oculto"
-            style="background:var(--inventario)" onclick="finalizarInventario()">
-      Finalizar inventario y ver reporte</button>
+    <div id="inv-reporte"></div>
   </div>
 
-  <div id="inv-reporte"></div>
-</div>
-
-<!-- ==================== PANTALLA STOCK / HISTORIAL ==================== -->
-<div id="p-tabla" class="oculto">
-  <button class="btn-sec" onclick="volverInicio()">← Volver</button>
-  <div class="tarjeta">
-    <h3 id="tabla-titulo"></h3>
+  <!-- ==================== PANTALLA STOCK / HISTORIAL ==================== -->
+  <div id="p-tabla" class="oculto">
+    <div class="modo-head">
+      <span class="label" id="tabla-titulo" style="margin:0"></span>
+      <button class="btn-salir" onclick="volverInicio()">← VOLVER</button>
+    </div>
     <input type="text" id="in-filtro" class="oculto" placeholder="Filtrar por ID, tipo o ubicación…"
            oninput="filtrarStock()">
-    <div id="tabla-cont" class="cargando">Cargando…</div>
+    <div id="tabla-cont"><div class="skeleton"></div><div class="skeleton"></div></div>
   </div>
+
 </div>
 
 <script>
 /* ============================ CONFIGURACIÓN ============================ */
-// Pegar acá la URL de la implementación del Apps Script (termina en /exec)
-const SCRIPT_URL = 'PEGAR_URL_DEL_APPS_SCRIPT_AQUI';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJmYJ4iIeaWQeidSf1uqRnVdrA-QEa0b4Lg-R3Tt2k-i6nIzTxmjVdl_NUNzyWnD0/exec';
 // Nombre del operario que aparece en el historial (cambiar por dispositivo)
 const USUARIO = 'operario-1';
 
@@ -168,7 +289,6 @@ let stream = null;
 let stockCache = [];
 
 const $ = id => document.getElementById(id);
-const COLORES = { ingreso:'var(--ingreso)', retiro:'var(--retiro)', inventario:'var(--inventario)' };
 
 /* ============================ NAVEGACIÓN =============================== */
 function irEscaner(m){
@@ -176,13 +296,13 @@ function irEscaner(m){
   $('p-inicio').classList.add('oculto');
   $('p-escaner').classList.remove('oculto');
   $('modo-tag').textContent = m;
-  $('modo-tag').style.background = COLORES[m];
+  $('modo-tag').className = 'modo-tag ' + m;
   $('inv-reporte').innerHTML = '';
   $('resultado').innerHTML = '';
   $('confirmacion').classList.add('oculto');
   $('inv-contador').classList.toggle('oculto', m !== 'inventario');
   $('btn-fin-inv').classList.toggle('oculto', m !== 'inventario');
-  if (m === 'inventario') $('inv-contador').firstChild.textContent = '0';
+  if (m === 'inventario') $('inv-contador').querySelector('.num').textContent = '0';
 
   if (m === 'ingreso'){                 // pedir ubicación una vez por sesión
     $('ubicacion-box').classList.remove('oculto');
@@ -195,7 +315,7 @@ function irEscaner(m){
 }
 function fijarUbicacion(){
   ubicacion = $('in-ubicacion').value.trim();
-  if (!ubicacion){ alert('Indicá una ubicación'); return; }
+  if (!ubicacion){ alert('Indique una ubicación'); return; }
   $('ubicacion-box').classList.add('oculto');
   $('visor-box').classList.remove('oculto');
   iniciarCamara();
@@ -229,7 +349,7 @@ async function iniciarCamara(){
     escaneando = true;
     bucleLectura();
   }catch(err){
-    $('cinta').textContent = 'Sin acceso a la cámara — usá la entrada manual';
+    $('cinta').textContent = 'Sin acceso a la cámara — use la entrada manual';
   }
 }
 function detenerCamara(){
@@ -290,7 +410,7 @@ function parsearQR(texto){
 function onLectura(texto){
   const fardo = parsearQR(texto);
   if (!fardo){
-    aviso('err', 'QR leído pero con formato desconocido: ' + texto.slice(0, 60));
+    aviso('red', 'QR leído pero con formato desconocido: ' + texto.slice(0, 60));
     pausaBreve(); return;
   }
   navigator.vibrate && navigator.vibrate(80);
@@ -298,7 +418,7 @@ function onLectura(texto){
   if (modo === 'inventario'){
     if (!invIds.has(fardo.id)){
       invIds.add(fardo.id);
-      $('inv-contador').firstChild.textContent = invIds.size;
+      $('inv-contador').querySelector('.num').textContent = invIds.size;
       $('cinta').textContent = 'Leído: ' + fardo.id + ' ✓';
     } else {
       $('cinta').textContent = fardo.id + ' ya escaneado';
@@ -318,7 +438,7 @@ function mostrarConfirmacion(fardo){
     (modo === 'ingreso' ? fila('Destino', ubicacion) : '');
   const btn = $('btn-confirmar');
   btn.textContent = modo === 'ingreso' ? 'Confirmar ingreso' : 'Confirmar retiro';
-  btn.style.background = COLORES[modo];
+  btn.className = 'btn-conf op-' + modo;
   btn.onclick = confirmarOperacion;
   $('confirmacion').classList.remove('oculto');
 }
@@ -334,7 +454,7 @@ async function confirmarOperacion(){
     : { action:'retiro', id: fardo.id, usuario: USUARIO };
   const r = await llamarAPI(body);
   descartar();
-  aviso(r.ok ? 'ok' : 'err', r.ok ? r.mensaje : r.error);
+  aviso(r.ok ? 'green' : 'red', r.ok ? r.mensaje : r.error);
 }
 
 function entradaManual(){
@@ -347,15 +467,24 @@ function entradaManual(){
 
 async function finalizarInventario(){
   detenerCamara();
-  $('inv-reporte').innerHTML = '<div class="cargando">Comparando contra el sistema…</div>';
+  $('inv-reporte').innerHTML = '<div class="skeleton"></div>';
   const r = await llamarAPI({ action:'inventario', ids:[...invIds], usuario: USUARIO });
-  if (!r.ok){ $('inv-reporte').innerHTML = ''; aviso('err', r.error); return; }
+  if (!r.ok){ $('inv-reporte').innerHTML = ''; aviso('red', r.error); return; }
   $('inv-reporte').innerHTML = `
-    <div class="tarjeta"><h3>Reporte de inventario</h3>
-      ${fila('Escaneados', r.escaneados)}
-      ${fila('En sistema (en bodega)', r.en_sistema)}
-      ${fila('Faltantes', r.faltantes.length ? r.faltantes.join(', ') : 'ninguno ✓')}
-      ${fila('Sobrantes', r.sobrantes.length ? r.sobrantes.join(', ') : 'ninguno ✓')}
+    <div class="hist-block semana">
+      <div class="hist-block-title">Reporte de inventario</div>
+      <div class="hist-cards">
+        <div class="hist-card"><div class="hist-card-label">Escaneados</div>
+          <div class="hist-card-value">${r.escaneados}</div></div>
+        <div class="hist-card"><div class="hist-card-label">En sistema</div>
+          <div class="hist-card-value">${r.en_sistema}</div></div>
+        <div class="hist-card"><div class="hist-card-label">Faltantes</div>
+          <div class="hist-card-value ${r.faltantes.length ? 'mal' : ''}">${r.faltantes.length}</div></div>
+        <div class="hist-card"><div class="hist-card-label">Sobrantes</div>
+          <div class="hist-card-value ${r.sobrantes.length ? 'mal' : ''}">${r.sobrantes.length}</div></div>
+      </div>
+      ${r.faltantes.length ? '<div class="hist-detail">Faltantes: ' + r.faltantes.join(', ') + '</div>' : ''}
+      ${r.sobrantes.length ? '<div class="hist-detail">Sobrantes: ' + r.sobrantes.join(', ') + '</div>' : ''}
     </div>`;
 }
 
@@ -363,18 +492,23 @@ async function finalizarInventario(){
 async function verStock(){
   abrirTabla('Stock en bodega', true);
   const r = await llamarAPI(null, 'stock');
-  if (!r.ok){ $('tabla-cont').textContent = r.error; return; }
+  if (!r.ok){ $('tabla-cont').innerHTML = '<div class="empty-state">' + r.error + '</div>'; return; }
   stockCache = r.fardos;
   pintarStock(stockCache);
 }
 function pintarStock(fardos){
   const enBodega = fardos.filter(f => f.estado === 'en_bodega');
   $('tabla-cont').innerHTML = enBodega.length
-    ? `<table><tr><th>ID</th><th>Descripción</th><th>Kg</th><th>Ubicación</th></tr>` +
-      enBodega.map(f => `<tr><td><b>${f.id}</b></td><td>${f.descripcion}</td>
-        <td>${f.peso_kg}</td><td>${f.ubicacion || '—'}</td></tr>`).join('') + '</table>' +
-      `<p style="margin-top:10px;color:var(--texto2);font-size:.85rem">${enBodega.length} fardos en bodega</p>`
-    : '<p class="cargando">Bodega vacía — no hay fardos ingresados todavía.</p>';
+    ? '<div class="lista">' + enBodega.map(f => `
+        <div class="item">
+          <div class="item-info">
+            <span class="item-id">${f.id}</span>
+            <span class="item-sub">${f.descripcion || f.tipo || '—'} · ${f.ubicacion || 'sin ubicación'}</span>
+          </div>
+          <span class="item-kg">${f.peso_kg ? f.peso_kg + ' kg' : ''}</span>
+        </div>`).join('') + '</div>' +
+      `<div class="total-line">${enBodega.length} fardos en bodega</div>`
+    : '<div class="empty-state">Bodega vacía — no hay fardos ingresados todavía.</div>';
 }
 function filtrarStock(){
   const q = $('in-filtro').value.toLowerCase();
@@ -384,12 +518,18 @@ function filtrarStock(){
 async function verHistorial(){
   abrirTabla('Últimos movimientos', false);
   const r = await llamarAPI(null, 'movimientos');
-  if (!r.ok){ $('tabla-cont').textContent = r.error; return; }
+  if (!r.ok){ $('tabla-cont').innerHTML = '<div class="empty-state">' + r.error + '</div>'; return; }
   $('tabla-cont').innerHTML = r.movimientos.length
-    ? `<table><tr><th>Fecha</th><th>Op.</th><th>Fardo</th><th>Usuario</th></tr>` +
-      r.movimientos.map(m => `<tr><td>${new Date(m.fecha).toLocaleString('es')}</td>
-        <td>${m.tipo}</td><td><b>${m.fardo_id}</b></td><td>${m.usuario}</td></tr>`).join('') + '</table>'
-    : '<p class="cargando">Sin movimientos registrados.</p>';
+    ? '<div class="lista">' + r.movimientos.map(m => `
+        <div class="item op-${m.tipo}-b">
+          <div class="item-info">
+            <span class="item-id">${m.fardo_id}</span>
+            <span class="item-sub">${m.tipo} · ${m.usuario || '—'}</span>
+          </div>
+          <span class="item-sub">${new Date(m.fecha).toLocaleString('es',
+            {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</span>
+        </div>`).join('') + '</div>'
+    : '<div class="empty-state">Sin movimientos registrados.</div>';
 }
 function abrirTabla(titulo, conFiltro){
   $('p-inicio').classList.add('oculto');
@@ -397,7 +537,7 @@ function abrirTabla(titulo, conFiltro){
   $('tabla-titulo').textContent = titulo;
   $('in-filtro').classList.toggle('oculto', !conFiltro);
   $('in-filtro').value = '';
-  $('tabla-cont').innerHTML = '<div class="cargando">Cargando…</div>';
+  $('tabla-cont').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
 }
 
 /* ============================ UTILIDADES =============================== */
@@ -413,12 +553,13 @@ async function llamarAPI(body, accionGet){
   }
 }
 function aviso(tipo, msj){
-  $('resultado').innerHTML = `<div class="aviso ${tipo}">${msj}</div>`;
+  $('resultado').innerHTML =
+    `<div class="alert-box ${tipo}"><div class="alert-dot"></div>${msj}</div>`;
   setTimeout(() => { $('resultado').innerHTML = ''; }, 5000);
 }
 function pausaBreve(){
   pausado = true;
-  setTimeout(() => { pausado = false; $('cinta').textContent = 'Apuntá al QR del fardo'; }, 1500);
+  setTimeout(() => { pausado = false; $('cinta').textContent = 'Apunte al QR del fardo'; }, 1500);
 }
 </script>
 </body>
