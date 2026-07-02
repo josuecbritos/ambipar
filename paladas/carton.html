@@ -226,11 +226,18 @@
     text-transform: uppercase; letter-spacing: 0.04em;
   }
   .history-right { display: flex; align-items: center; gap: 10px; }
-  .history-kg {
-    font-family: 'Roboto Mono', monospace; font-size: 15px;
-    font-weight: 500; color: var(--green); white-space: nowrap;
+  .history-io {
+    display: flex; align-items: baseline; gap: 8px;
+    font-family: 'Roboto Mono', monospace; font-size: 13px; font-weight: 500;
+    white-space: nowrap;
   }
-  .history-kg span { font-size: 10px; color: var(--gray-500); font-weight: 600; }
+  .history-io .io-in  { color: var(--gray-500); }
+  .history-io .io-out { color: var(--green); }
+  .history-io .io-unit { font-size: 9px; color: var(--gray-500); font-weight: 600; }
+  .modal-group-label {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--gray-500); text-align: left; margin: 8px 0 4px;
+  }
   .btn-editar {
     background: var(--white); border: 1.5px solid var(--green-mid);
     color: var(--green-dark); border-radius: 6px; padding: 5px 9px;
@@ -381,13 +388,13 @@
 
   <!-- FORM -->
   <div class="form-section">
-    <div class="label">Camiones recibidos en andén</div>
-    <div id="camionesContainer">
+    <div class="label">Recibido en andén</div>
+    <div id="entradaContainer">
       <div class="skeleton skeleton-item"></div>
     </div>
 
-    <div class="label" style="margin-top:10px;">Cantidades del día</div>
-    <div id="tiposContainer">
+    <div class="label" style="margin-top:10px;">Cartón clasificado</div>
+    <div id="salidaContainer">
       <div class="skeleton skeleton-item"></div>
       <div class="skeleton skeleton-item"></div>
       <div class="skeleton skeleton-item"></div>
@@ -433,14 +440,15 @@
 
   const DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
-  // Tipo reservado: conteo de unidades, NO suma kg
-  const TIPO_CAMIONES = "Camiones";
+  // Tipo técnico que ancla el día (no se muestra en ninguna parte)
+  const TIPO_ANCLA = "__dia__";
 
-  let config = [];        // [{ tipo, kg_unit }]
-  let registros = [];     // [{ fecha, tipo, cantidad, kg }]
+  let config = [];        // [{ tipo, kg_unit, grupo }]
+  let salida = [];        // tipos grupo "salida"
+  let entrada = [];       // tipos grupo "entrada"
+  let registros = [];     // [{ fecha, tipo, cantidad, kg, grupo }]
   let metaDiaria = 0;
   let yaRegistradoHoy = false;
-  let modoEdicion = false;
   let guardandoDia = null; // fecha "YYYY-MM-DD" que se está guardando, o null
 
   window.addEventListener("DOMContentLoaded", () => {
@@ -472,64 +480,67 @@
     }
 
     config = data.config || [];
+    salida = config.filter(c => c.grupo === "salida");
+    entrada = config.filter(c => c.grupo === "entrada");
     registros = data.registros || [];
     metaDiaria = Number(data.meta_diaria) || 0;
 
     // Cada paso aislado: si uno falla, los demás igual se ejecutan
-    try { renderCamiones(); } catch (e) { console.error("renderCamiones:", e); }
-    try { renderTipos(); } catch (e) { console.error("renderTipos:", e); }
+    try { renderEntrada(); } catch (e) { console.error("renderEntrada:", e); }
+    try { renderSalida(); } catch (e) { console.error("renderSalida:", e); }
     try { verificarHoy(); } catch (e) { console.error("verificarHoy:", e); }
     try { renderPeriodos(); } catch (e) { console.error("renderPeriodos:", e); }
     try { renderHistorial(); } catch (e) { console.error("renderHistorial:", e); }
   }
 
-  function renderCamiones() {
-    const cont = document.getElementById("camionesContainer");
-    cont.innerHTML = `
-      <div class="camiones-row">
-        <div class="camiones-info">
-          <svg class="camiones-icon" viewBox="0 0 24 24" fill="none" stroke="#7a877a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-          <span class="camiones-name">Camiones recibidos en andén</span>
-        </div>
-        <input type="number" class="camiones-input" id="camionesInput" placeholder="0"
-               inputmode="numeric" min="0" step="1">
-      </div>`;
-  }
-
-  function renderTipos() {
-    const cont = document.getElementById("tiposContainer");
-    if (config.length === 0) {
-      cont.innerHTML = '<div class="empty-state">No hay tipos configurados</div>';
-      return;
+  // Genera las filas de tipo para un grupo. prefijo: "sal" o "ent".
+  function filasTipoHTML(lista, prefijo) {
+    if (lista.length === 0) {
+      return '<div class="empty-state">Sin formatos configurados</div>';
     }
-    cont.innerHTML = config.map((c, i) => `
+    return lista.map((c, i) => `
       <div class="tipo-row">
         <div class="tipo-info">
           <span class="tipo-name">${c.tipo}</span>
           <span class="tipo-equiv">${formatNum(c.kg_unit)} kg c/u</span>
         </div>
-        <input type="number" class="tipo-input" id="tipo_${i}" placeholder="0"
+        <input type="number" class="tipo-input" id="${prefijo}_${i}" placeholder="0"
                inputmode="numeric" min="0" step="1" oninput="recalcular()">
-        <div class="tipo-kg zero" id="kg_${i}">0 kg</div>
+        <div class="tipo-kg zero" id="${prefijo}kg_${i}">0 kg</div>
       </div>
     `).join("");
   }
 
-  function recalcular() {
+  function renderEntrada() {
+    document.getElementById("entradaContainer").innerHTML = filasTipoHTML(entrada, "ent");
+  }
+  function renderSalida() {
+    document.getElementById("salidaContainer").innerHTML = filasTipoHTML(salida, "sal");
+  }
+
+  // Suma kg de un grupo desde los inputs del formulario, actualizando celdas
+  function sumarGrupo(lista, prefijo) {
     let total = 0;
-    config.forEach((c, i) => {
-      const cant = Number(document.getElementById(`tipo_${i}`).value) || 0;
+    lista.forEach((c, i) => {
+      const inp = document.getElementById(`${prefijo}_${i}`);
+      const cant = inp ? (Number(inp.value) || 0) : 0;
       const kg = cant * Number(c.kg_unit);
       total += kg;
-      const cell = document.getElementById(`kg_${i}`);
-      cell.textContent = formatNum(kg) + " kg";
-      cell.classList.toggle("zero", kg === 0);
+      const cell = document.getElementById(`${prefijo}kg_${i}`);
+      if (cell) { cell.textContent = formatNum(kg) + " kg"; cell.classList.toggle("zero", kg === 0); }
     });
+    return total;
+  }
+
+  function recalcular() {
+    sumarGrupo(entrada, "ent");
+    const totalSalida = sumarGrupo(salida, "sal");
+    // La caja destacada de arriba muestra el total de SALIDA (cartón clasificado)
     const tn = document.getElementById("totalKg");
-    tn.innerHTML = `${formatNum(total)} <span class="total-unit">kg</span>`;
+    tn.innerHTML = `${formatNum(totalSalida)} <span class="total-unit">kg</span>`;
     tn.classList.add("bump");
     setTimeout(() => tn.classList.remove("bump"), 180);
-    renderMeta(total);
+    renderMeta(totalSalida);
   }
 
   function renderMeta(totalHoy) {
@@ -539,11 +550,11 @@
     el.innerHTML = `Meta diaria: ${formatNum(metaDiaria)} kg · <span class="pct">${pct}%</span>`;
   }
 
-  // Total del día actual ya registrado (suma de kg de hoy en la base)
+  // Total del día actual ya registrado (suma de kg de salida de hoy)
   function totalHoyRegistrado() {
     const hoy = hoyISO();
     return registros
-      .filter(r => normalizarFecha(r.fecha) === hoy && r.tipo !== TIPO_CAMIONES)
+      .filter(r => normalizarFecha(r.fecha) === hoy && r.grupo === "salida")
       .reduce((s, r) => s + Number(r.kg || 0), 0);
   }
 
@@ -567,10 +578,10 @@
     lunes.setDate(hoy.getDate() - dow);
     lunes.setHours(0, 0, 0, 0);
 
-    // Sumar kg por periodo (excluye Camiones, que no es kg)
+    // Sumar kg de SALIDA por periodo (entrada y ancla no cuentan a la meta)
     let kgSemana = 0, kgMes = 0;
     registros.forEach(r => {
-      if (r.tipo === TIPO_CAMIONES) return;
+      if (r.grupo !== "salida") return;
       const f = normalizarFecha(r.fecha);
       if (!f) return;
       const d = new Date(f + "T12:00:00");
@@ -620,6 +631,15 @@
     numEl.classList.add(cumple ? "on-meta" : "off-meta");
   }
 
+  // Precarga/bloquea los inputs de un grupo con las cantidades de un día
+  function aplicarGrupoAInputs(lista, prefijo, filasDia, bloquear) {
+    lista.forEach((c, i) => {
+      const reg = filasDia.find(r => r.tipo === c.tipo);
+      const inp = document.getElementById(`${prefijo}_${i}`);
+      if (inp) { inp.value = reg ? reg.cantidad : ""; inp.disabled = !!bloquear; }
+    });
+  }
+
   function verificarHoy() {
     const hoy = hoyISO();
     yaRegistradoHoy = registros.some(r => normalizarFecha(r.fecha) === hoy);
@@ -629,27 +649,14 @@
     aviso.classList.remove("active");
 
     if (yaRegistradoHoy) {
-      modoEdicion = false;
-      // Precargar las cantidades registradas hoy (solo lectura)
       const filasHoy = registros.filter(r => normalizarFecha(r.fecha) === hoy);
-      config.forEach((c, i) => {
-        const reg = filasHoy.find(r => r.tipo === c.tipo);
-        const inp = document.getElementById(`tipo_${i}`);
-        if (inp) { inp.value = reg ? reg.cantidad : ""; inp.disabled = true; }
-      });
-      const cam = filasHoy.find(r => r.tipo === TIPO_CAMIONES);
-      const camInp = document.getElementById("camionesInput");
-      if (camInp) { camInp.value = cam ? cam.cantidad : 0; camInp.disabled = true; }
+      aplicarGrupoAInputs(entrada, "ent", filasHoy, true);
+      aplicarGrupoAInputs(salida, "sal", filasHoy, true);
       btnText.textContent = "Día ya registrado";
       btn.disabled = true;
     } else {
-      modoEdicion = false;
-      config.forEach((c, i) => {
-        const inp = document.getElementById(`tipo_${i}`);
-        if (inp) inp.disabled = false;
-      });
-      const camInp = document.getElementById("camionesInput");
-      if (camInp) camInp.disabled = false;
+      aplicarGrupoAInputs(entrada, "ent", [], false);
+      aplicarGrupoAInputs(salida, "sal", [], false);
       btnText.textContent = "Registrar Día";
       btn.disabled = false;
     }
@@ -670,20 +677,38 @@
 
   function registrar() {
     const filas = [];
-    // Camiones: ancla del día, SIEMPRE se incluye (aunque sea 0)
-    const camiones = Number(document.getElementById("camionesInput").value) || 0;
-    filas.push({ tipo: TIPO_CAMIONES, cantidad: camiones, kg: 0 });
+    // Ancla técnica del día: SIEMPRE se guarda (marca el día como registrado)
+    filas.push({ tipo: TIPO_ANCLA, cantidad: 0, kg: 0, grupo: "" });
 
-    // Tipos de cartón: solo si cantidad > 0
-    config.forEach((c, i) => {
-      const cant = Number(document.getElementById(`tipo_${i}`).value) || 0;
-      if (cant > 0) {
-        filas.push({ tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit) });
-      }
+    // Entrada y salida: una fila por tipo con cantidad > 0
+    entrada.forEach((c, i) => {
+      const cant = Number(document.getElementById(`ent_${i}`).value) || 0;
+      if (cant > 0) filas.push({ tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit), grupo: "entrada" });
+    });
+    salida.forEach((c, i) => {
+      const cant = Number(document.getElementById(`sal_${i}`).value) || 0;
+      if (cant > 0) filas.push({ tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit), grupo: "salida" });
     });
 
     filasPendientes = filas;
     abrirModal(filas);
+  }
+
+  // Construye las líneas del resumen para un grupo
+  function resumenGrupoHTML(filas, grupo) {
+    const items = filas.filter(f => f.grupo === grupo);
+    if (items.length === 0) return { html: "", total: 0 };
+    let total = 0;
+    const html = items.map(f => {
+      total += f.kg;
+      return `
+      <div class="modal-line">
+        <span class="modal-line-tipo">${f.tipo}</span>
+        <span class="modal-line-cant">×${formatNum(f.cantidad)}</span>
+        <span class="modal-line-kg">${formatNum(f.kg)} kg</span>
+      </div>`;
+    }).join("");
+    return { html, total };
   }
 
   function abrirModal(filas) {
@@ -694,26 +719,16 @@
     document.querySelector(".modal-title").textContent = "Confirmar registro";
     document.querySelector(".modal-btn-confirm").textContent = "Registrar";
 
-    let total = 0;
-    document.getElementById("modalResumen").innerHTML = filas.map(f => {
-      if (f.tipo === TIPO_CAMIONES) {
-        return `
-        <div class="modal-line">
-          <span class="modal-line-tipo">Camiones</span>
-          <span class="modal-line-cant">×${formatNum(f.cantidad)}</span>
-          <span class="modal-line-kg">—</span>
-        </div>`;
-      }
-      total += f.kg;
-      return `
-      <div class="modal-line">
-        <span class="modal-line-tipo">${f.tipo}</span>
-        <span class="modal-line-cant">×${formatNum(f.cantidad)}</span>
-        <span class="modal-line-kg">${formatNum(f.kg)} kg</span>
-      </div>`;
-    }).join("");
+    const ent = resumenGrupoHTML(filas, "entrada");
+    const sal = resumenGrupoHTML(filas, "salida");
+    let html = "";
+    if (ent.html) html += `<div class="modal-group-label">Recibido en andén</div>${ent.html}`;
+    if (sal.html) html += `<div class="modal-group-label">Cartón clasificado</div>${sal.html}`;
+    if (!html) html = '<div class="modal-line"><span class="modal-line-tipo">Día sin cantidades</span></div>';
+    document.getElementById("modalResumen").innerHTML = html;
 
-    document.getElementById("modalTotalKg").textContent = formatNum(total) + " kg";
+    // El total destacado del modal es la salida (cartón clasificado)
+    document.getElementById("modalTotalKg").textContent = formatNum(sal.total) + " kg";
     document.getElementById("modalOverlay").classList.add("active");
   }
 
@@ -734,13 +749,13 @@
       tipo: f.tipo,
       cantidad: f.cantidad,
       kg: f.kg,
+      grupo: f.grupo || "",
       timestamp: ts
     }));
 
     // 1) UI inmediata
     aplicarFilasLocal(fecha, filas);
     yaRegistradoHoy = true;
-    modoEdicion = false;
     document.getElementById("avisoHoy").classList.remove("active");
     animarBoton();
     guardandoDia = fecha;
@@ -758,7 +773,7 @@
     registros = registros.filter(r => normalizarFecha(r.fecha) !== fecha);
     filas.forEach(f => registros.push({
       id: f.id, fecha: fecha, tipo: f.tipo,
-      cantidad: f.cantidad, kg: f.kg, timestamp: f.timestamp
+      cantidad: f.cantidad, kg: f.kg, grupo: f.grupo || "", timestamp: f.timestamp
     }));
   }
 
@@ -812,30 +827,26 @@
   function renderHistorial() {
     const lista = document.getElementById("historyList");
 
-    const kgPorFecha = {};        // suma de kg (excluye Camiones)
-    const camionesPorFecha = {};  // # camiones por fecha
-    const registrado = {};        // fechas que tienen alguna fila (día registrado)
+    const kgEntrada = {};   // kg de entrada por fecha
+    const kgSalida = {};    // kg de salida por fecha
+    const registrado = {};  // fechas con alguna fila (día registrado)
     registros.forEach(r => {
       const f = normalizarFecha(r.fecha);
       if (!f) return;
       registrado[f] = true;
-      if (r.tipo === TIPO_CAMIONES) {
-        camionesPorFecha[f] = (camionesPorFecha[f] || 0) + Number(r.cantidad || 0);
-      } else {
-        kgPorFecha[f] = (kgPorFecha[f] || 0) + Number(r.kg || 0);
-      }
+      if (r.grupo === "entrada") kgEntrada[f] = (kgEntrada[f] || 0) + Number(r.kg || 0);
+      else if (r.grupo === "salida") kgSalida[f] = (kgSalida[f] || 0) + Number(r.kg || 0);
     });
 
     const hoy = hoyISO();
     const habilAnterior = diaHabilAnteriorISO();
     const fechas = ultimosDiasHabiles(DIAS_HISTORIAL + 1)
-      // Hoy solo aparece si fue registrado; el resto siempre (en 0 si no hay)
       .filter(f => f !== hoy || registrado[hoy])
       .slice(0, DIAS_HISTORIAL);
 
     lista.innerHTML = fechas.map(f => {
-      const kg = kgPorFecha[f] || 0;
-      const cam = camionesPorFecha[f] || 0;
+      const kgEnt = kgEntrada[f] || 0;
+      const kgSal = kgSalida[f] || 0;
       const d = new Date(f + "T00:00:00");
       const fechaDisp = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
       const esHoy = (f === hoy);
@@ -847,11 +858,15 @@
       <div class="history-item${esHoy ? ' hoy' : ''}">
         <div class="history-left">
           <div class="history-fecha">${fechaDisp}${badge}</div>
-          <div class="history-fecha-day">${DIAS[d.getDay()]} · ${cam} ${cam === 1 ? "camión" : "camiones"}</div>
+          <div class="history-fecha-day">${DIAS[d.getDay()]}</div>
         </div>
         <div class="history-right">
           ${dot}
-          <div class="history-kg">${formatNum(kg)} <span>kg</span></div>
+          <div class="history-io">
+            <span class="io-in">↓ ${formatNum(kgEnt)}</span>
+            <span class="io-out">↑ ${formatNum(kgSal)}</span>
+            <span class="io-unit">kg</span>
+          </div>
           ${editBtn}
         </div>
       </div>`;
@@ -868,44 +883,49 @@
     document.getElementById("modalEditFecha").textContent = disp;
 
     const filasDia = registros.filter(r => normalizarFecha(r.fecha) === fecha);
-    const camReg = filasDia.find(r => r.tipo === TIPO_CAMIONES);
-    const camVal = camReg ? camReg.cantidad : 0;
 
-    const camposHtml = `
-      <div class="edit-row">
-        <span class="edit-tipo">Camiones</span>
-        <input type="number" class="edit-input" id="editCamiones" value="${camVal}" placeholder="0"
-               inputmode="numeric" min="0" step="1">
-        <span class="edit-kg" style="color:var(--gray-300)">—</span>
-      </div>` +
-      config.map((c, i) => {
+    function filasEdit(lista, prefijo) {
+      return lista.map((c, i) => {
         const reg = filasDia.find(r => r.tipo === c.tipo);
         const val = reg ? reg.cantidad : "";
         return `
         <div class="edit-row">
           <span class="edit-tipo">${c.tipo}</span>
-          <input type="number" class="edit-input" id="edit_${i}" value="${val}" placeholder="0"
+          <input type="number" class="edit-input" id="${prefijo}_${i}" value="${val}" placeholder="0"
                  inputmode="numeric" min="0" step="1" oninput="recalcularEdit()">
-          <span class="edit-kg zero" id="editkg_${i}">0 kg</span>
+          <span class="edit-kg zero" id="${prefijo}kg_${i}">0 kg</span>
         </div>`;
       }).join("");
+    }
 
-    document.getElementById("modalEditCampos").innerHTML = camposHtml;
+    let html = "";
+    if (entrada.length) html += `<div class="modal-group-label">Recibido en andén</div>` + filasEdit(entrada, "edE");
+    if (salida.length)  html += `<div class="modal-group-label">Cartón clasificado</div>` + filasEdit(salida, "edS");
+    document.getElementById("modalEditCampos").innerHTML = html;
+
     recalcularEdit();
     document.getElementById("modalEditOverlay").classList.add("active");
   }
 
   function recalcularEdit() {
-    let total = 0;
-    config.forEach((c, i) => {
-      const cant = Number(document.getElementById(`edit_${i}`).value) || 0;
+    // total mostrado = salida (cartón clasificado)
+    let totalSal = 0;
+    entrada.forEach((c, i) => {
+      const inp = document.getElementById(`edE_${i}`);
+      const cant = inp ? (Number(inp.value) || 0) : 0;
       const kg = cant * Number(c.kg_unit);
-      total += kg;
-      const cell = document.getElementById(`editkg_${i}`);
-      cell.textContent = formatNum(kg) + " kg";
-      cell.classList.toggle("zero", kg === 0);
+      const cell = document.getElementById(`edEkg_${i}`);
+      if (cell) { cell.textContent = formatNum(kg) + " kg"; cell.classList.toggle("zero", kg === 0); }
     });
-    document.getElementById("modalEditTotal").textContent = formatNum(total) + " kg";
+    salida.forEach((c, i) => {
+      const inp = document.getElementById(`edS_${i}`);
+      const cant = inp ? (Number(inp.value) || 0) : 0;
+      const kg = cant * Number(c.kg_unit);
+      totalSal += kg;
+      const cell = document.getElementById(`edSkg_${i}`);
+      if (cell) { cell.textContent = formatNum(kg) + " kg"; cell.classList.toggle("zero", kg === 0); }
+    });
+    document.getElementById("modalEditTotal").textContent = formatNum(totalSal) + " kg";
   }
 
   function cerrarModalEdit() {
@@ -919,21 +939,16 @@
 
     const ts = new Date().toISOString();
     const filas = [];
-    // Camiones: ancla, siempre se guarda (aunque sea 0)
-    const camiones = Number(document.getElementById("editCamiones").value) || 0;
-    filas.push({ id: crypto.randomUUID(), tipo: TIPO_CAMIONES, cantidad: camiones, kg: 0, timestamp: ts });
+    // Ancla técnica: siempre
+    filas.push({ id: crypto.randomUUID(), tipo: TIPO_ANCLA, cantidad: 0, kg: 0, grupo: "", timestamp: ts });
 
-    config.forEach((c, i) => {
-      const cant = Number(document.getElementById(`edit_${i}`).value) || 0;
-      if (cant > 0) {
-        filas.push({
-          id: crypto.randomUUID(),
-          tipo: c.tipo,
-          cantidad: cant,
-          kg: cant * Number(c.kg_unit),
-          timestamp: ts
-        });
-      }
+    entrada.forEach((c, i) => {
+      const cant = Number(document.getElementById(`edE_${i}`).value) || 0;
+      if (cant > 0) filas.push({ id: crypto.randomUUID(), tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit), grupo: "entrada", timestamp: ts });
+    });
+    salida.forEach((c, i) => {
+      const cant = Number(document.getElementById(`edS_${i}`).value) || 0;
+      if (cant > 0) filas.push({ id: crypto.randomUUID(), tipo: c.tipo, cantidad: cant, kg: cant * Number(c.kg_unit), grupo: "salida", timestamp: ts });
     });
 
     cerrarModalEdit();
@@ -943,10 +958,7 @@
     guardandoDia = fecha;
     renderHistorial();
     renderPeriodos();
-    // Si editamos hoy, refrescar también el formulario y la caja de hoy
-    if (fecha === hoyISO()) {
-      verificarHoy();
-    }
+    if (fecha === hoyISO()) verificarHoy();
     setStatus("Guardando…", "");
 
     await enviarDia(fecha, filas);
