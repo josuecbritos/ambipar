@@ -529,15 +529,15 @@ async function cargarDatos() {
     });
 
     // Cartón: registro diario. La columna "Fecha" ya viene como día-Chile
-    // ("YYYY-MM-DD"); se usa como clave directa. Tipo "Camiones" no suma kg.
+    // ("YYYY-MM-DD"); clave directa. Solo el grupo "salida" (cartón separado)
+    // suma kg; la entrada (material recibido en andén) no cuenta para jefe.
     cartonPorDia = {};
     carton.forEach(r => {
       const k = normFechaCarton(r.Fecha);
       if (!k) return;
-      const tipo = String(r.Tipo || "").trim().toLowerCase();
-      if (!cartonPorDia[k]) cartonPorDia[k] = { kg: 0, camiones: 0 };
-      if (tipo === "camiones") cartonPorDia[k].camiones += Number(r.Cantidad) || 0;
-      else cartonPorDia[k].kg += Number(r.Kg) || 0;
+      const grupo = String(r.Grupo || "").trim().toLowerCase();
+      if (!cartonPorDia[k]) cartonPorDia[k] = { kg: 0 };
+      if (grupo === "salida") cartonPorDia[k].kg += Number(r.Kg) || 0;
     });
 
     actualizarHoy();
