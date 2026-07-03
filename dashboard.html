@@ -289,7 +289,8 @@
         fecha: normFechaCarton(r.Fecha),
         tipo: String(r.Tipo || '').trim(),
         cantidad: Number(r.Cantidad) || 0,
-        kg: Number(r.Kg) || 0
+        kg: Number(r.Kg) || 0,
+        grupo: String(r.Grupo || '').trim().toLowerCase()
       }));
 
       window.DATA = {
@@ -515,12 +516,11 @@
         if (d.operacion.cumpleUltima) cumpleU++;
       }});
 
-      // Cartón: suma de kg y de camiones. Se suma sobre TODOS los días del
-      // grupo que tengan cartón (no se filtra por "conPaladas"): el cartón es
-      // pre-entrada y puede recibirse en días sin operación de línea.
+      // Cartón: suma de kg de salida (cartón separado) y de entrada (material
+      // recibido en andén). Se suma sobre TODOS los días con cartón.
       const carDias = (SOLO_DIAS_CON_DATOS ? dias : dias).filter(d => d.carton);
-      let carKg = 0, carCam = 0, carN = 0;
-      carDias.forEach(d => { carKg += d.carton.kg; carCam += d.carton.camiones; carN++; });
+      let carKg = 0, carRecibido = 0, carN = 0;
+      carDias.forEach(d => { carKg += d.carton.kg; carRecibido += d.carton.recibido; carN++; });
 
       out[k] = {
         clave: k, nDias: usar.length,
@@ -533,7 +533,7 @@
           pct: prog > 0 ? (disp / prog) * 100 : 0, causas } : null,
         operacion: opN ? { cumplePrimera: (cumpleP / opN) * 100, cumpleUltima: (cumpleU / opN) * 100,
           combinado: ((cumpleP + cumpleU) / (2 * opN)) * 100, nDias: opN } : null,
-        carton: carN ? { kg: carKg, camiones: carCam, nDias: carN } : null
+        carton: carN ? { kg: carKg, recibido: carRecibido, nDias: carN } : null
       };
     });
     return out;
@@ -555,21 +555,17 @@
     return { paladas: n };
   }
 
-  // ── KPI 6: Cartón (kg totales + camiones recibidos), registro diario ──
-  // Cada fila: { tipo, cantidad, kg }. El tipo "Camiones" es reservado:
-  // cuenta unidades de camión recibidas y NO suma a los kg de cartón.
+  // ── KPI 6: Cartón separado (salida) + material recibido en andén (entrada) ──
+  // Cada fila trae su Grupo: "salida" = cartón clasificado; "entrada" = material
+  // mixto recibido. Ambos en kg; el cartón tiene meta, el recibido es informativo.
   function kpiCarton(regs) {
     if (!regs.length) return null;
-    let kg = 0, camiones = 0;
+    let kg = 0, recibido = 0;
     regs.forEach(r => {
-      const tipo = String(r.tipo || '').trim().toLowerCase();
-      if (tipo === 'camiones') {
-        camiones += Number(r.cantidad) || 0;
-      } else {
-        kg += Number(r.kg) || 0;
-      }
+      if (r.grupo === 'salida')  kg += Number(r.kg) || 0;
+      else if (r.grupo === 'entrada') recibido += Number(r.kg) || 0;
     });
-    return { kg, camiones };
+    return { kg, recibido };
   }
   function kpiEnfardado(regs) {
     let resimple = 0, otros = 0, rechazo = 0;
@@ -782,19 +778,19 @@
   }
 
   // Card de cartón reutilizable (diario/semanal/mensual).
-  //  carObj: { kg, camiones, [nDias] }   ·   ant: objeto carton del período previo
+  //  carObj: { kg, recibido, [nDias] }   ·   ant: objeto carton del período previo
   //  metaDias: nº de días para escalar la meta diaria (1 en diario).
   function cardCarton(carObj, C, ant, metaDias, etiquetaDelta) {
     const nd = metaDias || (carObj && carObj.nDias) || 1;
     const metaTotal = (C.metaCarton != null) ? C.metaCarton * nd : null;
     const kg = carObj ? carObj.kg : null;
-    const cam = carObj ? carObj.camiones : null;
+    const recibido = carObj ? carObj.recibido : null;
     const t = kg != null ? kg2t(kg) : null;
     // Semáforo solo si hay meta; si metaCarton es null → dot-gray (sin color)
     const dot = dotClase(kg, metaTotal);
     const metaTxt = (metaTotal != null) ? `Meta ${fmt1(kg2t(metaTotal))} t` : 'Sin meta';
     const delta = (ant && etiquetaDelta) ? deltaHTML(kg, ant.kg, etiquetaDelta) : '';
-    const sub = carObj ? `${cam != null ? fmt0(cam) : '0'} camion${cam === 1 ? '' : 'es'} recibidos` : null;
+    const sub = (carObj && recibido != null) ? `Material recibido en andén: ${fmt1(kg2t(recibido))} t` : null;
     return `
       <div class="card">
         <div class="card-label">Cartón</div>
@@ -871,7 +867,7 @@
       ant && ant.usoFaresin ? deltaHTML(ufAlim, ant.usoFaresin.pct.alimentando, 'vs día ant.') : ''
     );
 
-    // Pre Entrada — Cartón (TON + camiones recibidos)
+    // Pre Entrada — Cartón separado (t) + material recibido en andén (t)
     const car = dia.carton;
     const cCarton = cardCarton(car, C, ant && ant.carton);
 
@@ -1120,13 +1116,13 @@
         const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.nDias || 5)) : 'dot-gray';
         return celT(fmt1(kg2t(p.carton.kg)), dot, sep || '');
       };
-      return `<tr><td class="kpi-name">Cartón (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
+      return `<tr><td class="kpi-name">Cartón separado (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
     }
-    // Camiones recibidos: informativa, sin semáforo
+    // Material recibido en andén (entrada): informativa, sin semáforo, en toneladas
     function filaCartonCamiones() {
-      return filaInfo('Camiones recibidos andén',
-        d => d && d.carton ? fmt0(d.carton.camiones) : null,
-        p => p && p.carton ? fmt0(p.carton.camiones) : null);
+      return filaInfo('Material recibido en andén (t)',
+        d => d && d.carton ? fmt1(kg2t(d.carton.recibido)) : null,
+        p => p && p.carton ? fmt1(kg2t(p.carton.recibido)) : null);
     }
 
     const html = `
@@ -1363,9 +1359,9 @@
         const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.nDias || 20)) : 'dot-gray';
         return celT(fmt1(kg2t(p.carton.kg)), dot, sep);
       };
-      return `<tr><td class="kpi-name">Cartón (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+      return `<tr><td class="kpi-name">Cartón separado (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
     }
-    const filaCartonCamiones = () => filaInfoMes('Camiones recibidos andén', p => p.carton ? fmt0(p.carton.camiones) : null);
+    const filaCartonCamiones = () => filaInfoMes('Material recibido en andén (t)', p => p.carton ? fmt1(kg2t(p.carton.recibido)) : null);
 
     const html = `
       <thead><tr>
