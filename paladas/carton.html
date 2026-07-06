@@ -436,7 +436,7 @@
   const TOKEN   = "carton2026";
 
   // Cuántos días mostrar en "Últimos días"
-  const DIAS_HISTORIAL = 5;
+  const DIAS_HISTORIAL = 6;
 
   const DIAS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
@@ -805,14 +805,14 @@
   function fechaToISO(d) {
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
   }
-  function esHabil(d) { const g = d.getDay(); return g >= 1 && g <= 5; } // lun-vie
-  // Día hábil anterior a hoy (salta sáb/dom)
+  function esHabil(d) { return d.getDay() !== 0; } // lun-sáb (excluye solo domingo)
+  // Día anterior a hoy que cuenta para la lista (salta solo domingos)
   function diaHabilAnteriorISO() {
     const a = new Date();
     do { a.setDate(a.getDate() - 1); } while (!esHabil(a));
     return fechaToISO(a);
   }
-  // Últimos N días hábiles terminando hoy (si hoy es hábil) o en el último hábil
+  // Últimos N días lun-sáb terminando hoy (si hoy cuenta) o en el último válido
   function ultimosDiasHabiles(n) {
     const out = [];
     const d = new Date();
