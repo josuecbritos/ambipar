@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estado de herramientas · Ambipar</title>
+<style>
+:root{
+  --paper:#E6E7E2; --panel:#F4F5F1; --ink:#191C19; --ink-soft:#5C625C;
+  --line:#C9CCC4; --ok:#2F7A3E; --warn:#B4700A; --bad:#C0392B; --idle:#9AA09A;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+.wrap{max-width:920px;margin:0 auto;padding:28px 18px 60px}
+header{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;justify-content:space-between;
+  border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:6px}
+h1{font-size:15px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin:0}
+.sub{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 0 18px}
+button{font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--ink);background:var(--ink);color:var(--panel);padding:9px 16px;border-radius:2px}
+button.ghost{background:transparent;color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible{outline:2px solid var(--warn);outline-offset:2px}
+.legend{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-left:auto;text-align:right}
+#resumen{display:none;border:1.5px solid var(--ink);background:var(--panel);padding:14px 16px;margin-bottom:18px}
+#resumen h2{margin:0 0 8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+#resumen .head{font-size:17px;font-weight:700;margin-bottom:6px}
+#resumen.todook{border-left:5px solid var(--ok)} #resumen.todook .head{color:var(--ok)}
+#resumen.hayfalla{border-left:5px solid var(--bad)}
+#resumen ul{margin:6px 0 0;padding-left:0;list-style:none}
+#resumen li{display:flex;gap:10px;align-items:baseline;padding:5px 0;border-top:1px solid var(--line);font-size:13.5px}
+#resumen li b{min-width:120px;font-size:13.5px}
+#resumen li span{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:2px;color:#fff;white-space:nowrap}
+.card{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--idle);margin-bottom:10px}
+.card.ok{border-left-color:var(--ok)} .card.warn{border-left-color:var(--warn)}
+.card.bad{border-left-color:var(--bad)} .card.run{border-left-color:var(--ink)}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:13px 16px}
+.nm{font-weight:700;font-size:15px;min-width:150px}
+.nm small{display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;color:var(--ink-soft)}
+.verdict{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;padding:4px 9px;border-radius:2px;color:#fff;white-space:nowrap}
+.v-ok{background:var(--ok)} .v-warn{background:var(--warn)} .v-bad{background:var(--bad)}
+.v-idle{background:var(--idle)} .v-run{background:var(--ink)}
+.msg{flex:1;min-width:190px;font-size:13.5px;color:var(--ink-soft)}
+.ms{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.mini{font-family:var(--sans);font-size:11px;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--ink-soft);padding:5px 10px}
+/* signature: la cadena de 3 eslabones */
+.chain{display:flex;gap:3px;padding:0 16px 13px}
+.link{flex:1;border:1px solid var(--line);background:#fff;padding:7px 9px;position:relative}
+.link b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:var(--ink-soft);font-weight:600}
+.link i{display:block;font-style:normal;font-size:12px;margin-top:2px;color:var(--idle)}
+.link.ok{background:#EAF3EB;border-color:var(--ok)} .link.ok i{color:var(--ok)}
+.link.warn{background:#FBF1E0;border-color:var(--warn)} .link.warn i{color:var(--warn)}
+.link.bad{background:#F8E7E5;border-color:var(--bad)} .link.bad i{color:var(--bad)}
+details{border-top:1px dashed var(--line);margin:0 16px 12px}
+summary{font-family:var(--mono);font-size:11px;color:var(--ink-soft);cursor:pointer;padding:8px 0}
+pre{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);
+  padding:10px;overflow:auto;max-height:220px;white-space:pre-wrap;word-break:break-word;margin:0 0 10px}
+.note{font-family:var(--mono);font-size:11px;color:var(--ink-soft);border-top:1px solid var(--line);margin-top:22px;padding-top:14px}
+@media (max-width:560px){.chain{flex-direction:column}.legend{margin-left:0;text-align:left}}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Estado de herramientas</h1>
+  <div class="sub" id="stamp">sin chequear</div>
+</header>
+
+<div class="bar">
+  <button id="all">Chequear todo</button>
+  <button class="ghost" id="clear">Limpiar</button>
+  <div class="legend">
+    GITHUB · la página no carga &nbsp;|&nbsp; APPS SCRIPT · falla del lado de Google<br>
+    SHEETS · hoja inaccesible o rota &nbsp;|&nbsp; CUOTA · Google frenó la ejecución<br>
+    INTERMITENTE · falló y se recuperó<br>
+    LENTO · responde, pero sobre 20 s
+  </div>
+</div>
+
+<div id="resumen"></div>
+
+<div id="list"></div>
+
+<div class="note">
+  Solo lecturas. El panel nunca escribe en las hojas.<br>
+  GITHUB carga la página real desde Pages. APPS SCRIPT pide datos al endpoint.<br>
+  SHEETS se deduce de la respuesta: si Google nombra la hoja en el error, o si el JSON<br>
+  llega sin la estructura esperada. Cuando el error es genérico, cae en APPS SCRIPT.<br>
+  Los scripts devuelven solo la data del día: cero filas no es una falla.<br>
+  Ante un fallo reintenta una vez a los 5 s. Rojo solo con dos fallos seguidos.<br>
+  El barrido espera 4 s entre herramientas para no golpear la cuota.<br>
+  Línea base medida: 5 a 15 s. LENTO recién sobre 20 s.
+</div>
+</div>
+
+<script>
+/* ─────────── CONFIG ─────────── */
+const CFG = {
+  pages:   "https://josuecbritos.github.io/ambipar/",
+  msWarn:  20000,    // amarillo sobre este tiempo (normal medido: 5-15 s)
+  msBad:   30000,    // rojo sobre este tiempo
+  timeout: 45000,    // corta el request
+  esperaReintento: 5000,  // espera antes de reintentar un fallo
+  tPagina: 20000,    // corta la carga de la página
+  pausa:   4000,     // espera entre herramientas en el barrido
+  horaIni: 7, horaFin: 20
+};
+
+// historial de latencias de la sesión, para ver la dispersión
+const HIST = {};
+
+// último resultado por herramienta, para el resumen
+const RES = {};
+
+const hoy = () => new Date().toISOString().slice(0,10);
+
+/* ─────────── HERRAMIENTAS ───────────
+   escribe: true  -> se evalúa frescura del último registro
+   regs:  extrae el arreglo de registros desde la respuesta
+   ok:    valida que el JSON tenga la forma esperada          */
+const TOOLS = [
+  { id:"dashboard", nombre:"Dashboard", archivo:"dashboard.html",
+    url:"https://script.google.com/macros/s/AKfycbxjvmJR-3qoi8I4s59GvEE4DicI4-UMjdUq_bbXDH9xco_OuGlz2mmVOkgHXkemvxFJ/exec",
+    q:{token:"dashboard2026"}, escribe:false,
+    ok:d => d && d.ok === true ? null : (d && d.error ? "el script respondió: "+d.error : "el JSON no trae ok:true") },
+
+  { id:"paladas", nombre:"Paladas", archivo:"paladas/index.html",
+    url:"https://script.google.com/macros/s/AKfycbzlhn0m3Bqvq663PRbrjbvDE-64TCQDGE0Z4MtRXgi-tqZZLDouDdCatiZLS22tfn-P/exec",
+    q:{token:"paladas2026"}, escribe:true, ts:"timestamp",
+    regs:d => d && d.registros,
+    ok:d => d && Array.isArray(d.registros) ? null : "falta la lista de registros" },
+
+  { id:"fardos", nombre:"Fardos", archivo:"paladas/fardos.html",
+    url:"https://script.google.com/macros/s/AKfycbyLrCLKt1iW5QtckaToGsoYjK8q5ojzUnAzFi_JRP0nJPIlmBmvTiDUAvQuoFpxW4I/exec",
+    q:{token:"paladas2026"}, escribe:true, ts:"timestamp",
+    regs:d => d && d.registros,
+    ok:d => d && Array.isArray(d.registros) ? null : "falta la lista de registros" },
+
+  { id:"detenciones", nombre:"Detenciones", archivo:"paladas/detenciones.html",
+    url:"https://script.google.com/macros/s/AKfycbzt1cgYMbnxYipyVXG0qrVL6TpacbdM5DxAJSNG8kPBjkX9mlQYFyZ8MFabQDlrzsM/exec",
+    q:{token:"paladas2026"}, escribe:true, ts:"timestamp",
+    regs:d => Array.isArray(d) ? d : null,
+    ok:d => Array.isArray(d) ? null : "esperaba una lista de registros" },
+
+  { id:"cdr", nombre:"Paladas CDR", archivo:"paladas/paladas-cdr.html",
+    url:"https://script.google.com/macros/s/AKfycbxVwd7gzrhM3Z7Wo4xNjJmfwO20a81hPpPsUGl2VEYQDowWxCacLx-rgCrriT1RK4ZN/exec",
+    q:{token:"paladasCDR2026"}, escribe:true, ts:"timestamp",
+    regs:d => d && d.registros,
+    ok:d => d && d.config && Array.isArray(d.registros) ? null : "falta config o registros" },
+
+  { id:"carton", nombre:"Cartón", archivo:"paladas/carton.html",
+    url:"https://script.google.com/macros/s/AKfycbycMUnAFBX-wV4L70q9FYm_zF838eN0KZRstZZP5_pTVHg2NC5jQzLagm5fZEP_GUHk/exec",
+    q:{token:"carton2026"}, escribe:true, ts:"fecha",
+    regs:d => d && d.registros,
+    ok:d => d && Array.isArray(d.registros) ? null : "falta la lista de registros" },
+
+  { id:"jefe", nombre:"Jefe de turno", archivo:"paladas/jefe.html",
+    url:"https://script.google.com/macros/s/AKfycbx7x65j3SEx_mNOyGM3H5UJQjzYFeNeNEpW_IEFsAbCTSedlscJhTfhramPBTYEhKw/exec",
+    q:{token:"paladas2026"}, escribe:false,
+    ok:d => d && typeof d === "object" && !d.error ? null : (d && d.error ? "el script respondió: "+d.error : "respuesta inesperada") }
+];
+
+/* ─────────── HELPERS ─────────── */
+function conTimeout(url){
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), CFG.timeout);
+  return fetch(url, { signal:c.signal, redirect:"follow" }).finally(() => clearTimeout(t));
+}
+
+// carga la página real desde Pages en un iframe oculto
+function cargarPagina(archivo){
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    const f = document.createElement("iframe");
+    f.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;border:0;left:-9999px";
+    let listo = false;
+    const cerrar = ok => {
+      if (listo) return; listo = true;
+      clearTimeout(tm); f.remove();
+      resolve({ ok, ms: Math.round(performance.now() - t0) });
+    };
+    const tm = setTimeout(() => cerrar(false), CFG.tPagina);
+    f.onload  = () => cerrar(true);
+    f.onerror = () => cerrar(false);
+    f.src = CFG.pages + archivo;
+    document.body.appendChild(f);
+  });
+}
+
+function armarUrl(t){
+  const p = new URLSearchParams(t.q || {});
+  return t.url + "?" + p.toString();
+}
+// clasifica el texto de error que devuelve Google
+function clasificar(html){
+  const s = (html || "").toLowerCase();
+  if (/service invoked too many times|too many times|quota|rate limit|exceeded maximum execution/.test(s))
+    return { luz:"CUOTA", msg:"Google frenó la ejecución por cuota. Esperá unos minutos y reintentá." };
+  if (/spreadsheet|sheet|hoja de c|no se encontr|not found.*(sheet|range)|invalid argument.*range/.test(s))
+    return { luz:"SHEETS", msg:"El script no pudo abrir o leer la hoja. ¿Renombrada, movida o sin permisos?" };
+  if (/permission|autoriza|access denied|no tiene permiso/.test(s))
+    return { luz:"SHEETS", msg:"Problema de permisos sobre la hoja o el deployment." };
+  return null;
+}
+
+/* ─────────── CHEQUEO ─────────── */
+
+// un intento contra el endpoint; devuelve el análisis sin dictar veredicto final
+async function intentar(t){
+  const a = { log:[] };
+  const t0 = performance.now();
+  try {
+    const r = await conTimeout(armarUrl(t));
+    a.ms = Math.round(performance.now() - t0);
+    const cuerpo = await r.text();
+    a.kb = (cuerpo.length/1024).toFixed(0) + " KB";
+    a.log.push("exec -> HTTP " + r.status + " en " + a.ms + " ms, " + cuerpo.length + " bytes (" + a.kb + ")");
+
+    if (!r.ok){
+      a.falla = true;
+      a.script = { st:"bad", txt:"HTTP " + r.status };
+      a.sheets = { st:"idle", txt:"sin dato" };
+      a.veredicto = "APPS SCRIPT";
+      a.msg = (r.status === 401 || r.status === 403)
+        ? "Token rechazado o el deployment no es público."
+        : "El endpoint respondió HTTP " + r.status + ".";
+      a.log.push(cuerpo.slice(0,600));
+      return a;
+    }
+
+    let data = null;
+    try { data = JSON.parse(cuerpo); }
+    catch(_){
+      a.falla = true;
+      const cl = clasificar(cuerpo);
+      if (cl){
+        a.script = { st:"warn", txt:"error de ejecución" };
+        a.sheets = { st:"bad", txt: cl.luz === "CUOTA" ? "cuota" : "no accesible" };
+        a.veredicto = cl.luz; a.msg = cl.msg;
+      } else {
+        a.script = { st:"bad", txt:"devolvió HTML" };
+        a.sheets = { st:"idle", txt:"sin dato" };
+        a.veredicto = "APPS SCRIPT";
+        const linea = (cuerpo.match(/<title>([^<]*)<\/title>/i) || [])[1] || "";
+        a.msg = "Google devolvió una página de error" + (linea ? " (" + linea.trim() + ")" : "") +
+                " sin decir la causa. Puede ser el script o la hoja.";
+      }
+      a.log.push(cuerpo.slice(0,900));
+      return a;
+    }
+
+    const roto = t.ok(data);
+    if (roto){
+      a.falla = true;
+      a.script = { st:"warn", txt:"JSON incompleto" };
+      a.sheets = { st:"bad", txt:"estructura rota" };
+      a.veredicto = "SHEETS";
+      a.msg = "Respondió JSON pero " + roto + ". La hoja cambió de estructura.";
+    } else {
+      a.script = { st: a.ms > CFG.msBad ? "bad" : a.ms > CFG.msWarn ? "warn" : "ok", txt: a.ms + " ms" };
+      const regs = t.regs ? t.regs(data) : null;
+      if (!t.regs){
+        a.sheets = { st:"ok", txt:"datos presentes" };
+      } else if (Array.isArray(regs) && regs.length){
+        a.sheets = { st:"ok", txt: regs.length + " filas" };
+      } else {
+        // arreglo presente pero vacío: la hoja se leyó bien, hoy no hay registros
+        a.sheets = { st:"ok", txt:"sin filas hoy" };
+      }
+    }
+    a.log.push(JSON.stringify(data).slice(0,700));
+    return a;
+
+  } catch(e){
+    a.ms = Math.round(performance.now() - t0);
+    a.falla = true;
+    a.script = { st:"bad", txt: e.name === "AbortError" ? "sin respuesta" : "no alcanzable" };
+    a.sheets = { st:"idle", txt:"sin dato" };
+    a.veredicto = "APPS SCRIPT";
+    a.msg = e.name === "AbortError"
+      ? "No respondió en " + (CFG.timeout/1000) + " s."
+      : "No se pudo alcanzar el endpoint. Puede ser una URL vieja tras un re-deploy, o el navegador bloqueando el pedido.";
+    a.log.push("exec -> " + e.name + ": " + e.message + " (" + a.ms + " ms)");
+    return a;
+  }
+}
+
+async function revisar(t){
+  const out = { github:{}, script:{}, sheets:{ st:"idle", txt:"—" }, log:[] };
+
+  // 1 · la página carga desde GitHub Pages
+  const pg = await cargarPagina(t.archivo);
+  if (pg.ok){
+    out.github = { st:"ok", txt:"carga en " + (pg.ms/1000).toFixed(1) + " s" };
+  } else {
+    out.github = { st:"bad", txt:"no carga" };
+    out.veredicto = "GITHUB";
+    out.msg = "La página no cargó desde Pages en " + (CFG.tPagina/1000) + " s.";
+  }
+  out.log.push("pagina " + CFG.pages + t.archivo + " -> " + (pg.ok ? "cargó" : "no cargó") + " en " + pg.ms + " ms");
+
+  // 2 · el endpoint, con reintento ante fallo
+  let a = await intentar(t);
+  out.log.push(...a.log);
+
+  if (a.falla){
+    out.log.push("— falló, reintento en " + (CFG.esperaReintento/1000) + " s —");
+    await new Promise(r => setTimeout(r, CFG.esperaReintento));
+    const b = await intentar(t);
+    out.log.push(...b.log);
+    if (!b.falla){
+      // el segundo salió bien: fue intermitente, no una caída
+      a = b;
+      a.intermitente = true;
+    } else {
+      a = b;                 // dos fallos seguidos: la caída es real
+      a.confirmada = true;
+    }
+  }
+
+  out.script = a.script; out.sheets = a.sheets; out.ms = a.ms; out.kb = a.kb;
+
+  // historial de latencias de la sesión
+  if (out.ms){ (HIST[t.id] = HIST[t.id] || []).push(out.ms); if (HIST[t.id].length > 6) HIST[t.id].shift(); }
+  out.hist = (HIST[t.id] || []).map(x => (x/1000).toFixed(1)).join(" · ");
+
+  // veredicto final
+  if (!out.veredicto){
+    const seg = (out.ms/1000).toFixed(1);
+    if (a.intermitente){
+      out.veredicto = "INTERMITENTE";
+      out.script.st = "warn";
+      out.msg = "Falló el primer intento y respondió bien el segundo. Inestable, no caído.";
+    } else if (a.veredicto && a.veredicto !== "OK"){
+      out.veredicto = a.veredicto;
+      out.msg = a.msg + (a.confirmada ? " Confirmado en dos intentos seguidos." : "");
+    } else if (out.ms > CFG.msWarn){
+      out.veredicto = "LENTO";
+      out.msg = "Tardó " + seg + " s, por encima de lo habitual.";
+    } else {
+      out.veredicto = "OK";
+      out.msg = "Los tres puntos responden. Respondió en " + seg + " s" + (out.kb ? " · " + out.kb : "") + ".";
+    }
+  }
+  return out;
+}
+
+/* ─────────── UI ─────────── */
+const clase = v => v === "OK" ? "ok"
+  : (v === "GITHUB" || v === "APPS SCRIPT" || v === "SHEETS" || v === "CUOTA") ? "bad" : "warn";
+
+function pintar(t, r, corriendo){
+  const card = document.getElementById("card-" + t.id);
+  if (corriendo){
+    card.className = "card run";
+    card.querySelector(".verdict").className = "verdict v-run";
+    card.querySelector(".verdict").textContent = "CHEQUEANDO";
+    card.querySelector(".msg").textContent = "";
+    return;
+  }
+  const c = clase(r.veredicto);
+  card.className = "card " + c;
+  const v = card.querySelector(".verdict");
+  v.className = "verdict v-" + c;
+  v.textContent = r.veredicto;
+  card.querySelector(".msg").textContent = r.msg;
+  card.querySelector(".ms").textContent =
+    (r.kb ? r.kb + "  " : "") + (r.hist ? "· " + r.hist + " s" : "");
+  const est = { github:r.github, script:r.script, sheets:r.sheets };
+  for (const k in est){
+    const el = card.querySelector('[data-link="' + k + '"]');
+    el.className = "link " + (est[k].st || "");
+    el.querySelector("i").textContent = est[k].txt || "—";
+  }
+  card.querySelector("pre").textContent = r.log.join("\n\n");
+  card.querySelector("details").style.display = "block";
+}
+
+function tarjeta(t){
+  const d = document.createElement("div");
+  d.className = "card"; d.id = "card-" + t.id;
+  d.innerHTML =
+    '<div class="top">' +
+      '<div class="nm">' + t.nombre + '<small>' + t.archivo + '</small></div>' +
+      '<span class="verdict v-idle">SIN CHEQUEAR</span>' +
+      '<span class="msg"></span><span class="ms"></span>' +
+      '<button class="mini">Chequear</button>' +
+    '</div>' +
+    '<div class="chain">' +
+      '<div class="link" data-link="github"><b>GITHUB</b><i>—</i></div>' +
+      '<div class="link" data-link="script"><b>APPS SCRIPT</b><i>—</i></div>' +
+      '<div class="link" data-link="sheets"><b>SHEETS</b><i>—</i></div>' +
+    '</div>' +
+    '<details style="display:none"><summary>Ver respuesta cruda</summary><pre></pre></details>';
+  d.querySelector(".mini").addEventListener("click", () => uno(t));
+  return d;
+}
+
+async function uno(t){
+  pintar(t, null, true);
+  const r = await revisar(t);
+  RES[t.id] = r;
+  pintar(t, r, false);
+  sello();
+  pintarResumen();
+}
+
+function pintarResumen(){
+  const caja = document.getElementById("resumen");
+  const revisadas = TOOLS.filter(t => RES[t.id]);
+  if (!revisadas.length){ caja.style.display = "none"; return; }
+
+  const malas = revisadas.filter(t => RES[t.id].veredicto !== "OK");
+  caja.style.display = "block";
+  caja.className = malas.length ? "hayfalla" : "todook";
+
+  let html = '<h2>Resumen del chequeo</h2>';
+  if (!malas.length){
+    html += '<div class="head">Todo OK</div>' +
+            '<div style="font-size:13.5px;color:var(--ink-soft)">Las ' + revisadas.length +
+            ' herramientas responden con datos válidos.</div>';
+  } else {
+    html += '<div class="head">' + malas.length + " de " + revisadas.length +
+            (malas.length === 1 ? ' con problema' : ' con problemas') + '</div><ul>';
+    malas.forEach(t => {
+      const r = RES[t.id];
+      html += '<li><b>' + t.nombre + '</b>' +
+              '<span class="v-' + clase(r.veredicto) + '">' + r.veredicto + '</span>' +
+              '<i style="font-style:normal;color:var(--ink-soft)">' + r.msg + '</i></li>';
+    });
+    html += '</ul>';
+  }
+  caja.innerHTML = html;
+}
+
+async function todo(){
+  const b = document.getElementById("all");
+  b.disabled = true;
+  for (let i = 0; i < TOOLS.length; i++){
+    b.textContent = "Chequeando " + (i+1) + " de " + TOOLS.length + "…";
+    await uno(TOOLS[i]);
+    if (i < TOOLS.length - 1){
+      b.textContent = "Esperando…";
+      await new Promise(r => setTimeout(r, CFG.pausa));   // no golpear la cuota
+    }
+  }
+  b.disabled = false; b.textContent = "Chequear todo";
+}
+
+function sello(){
+  document.getElementById("stamp").textContent =
+    "último chequeo " + new Date().toLocaleString("es-CL", { hour12:false });
+}
+
+const list = document.getElementById("list");
+TOOLS.forEach(t => list.appendChild(tarjeta(t)));
+document.getElementById("all").addEventListener("click", todo);
+document.getElementById("clear").addEventListener("click", () => {
+  list.innerHTML = ""; TOOLS.forEach(t => list.appendChild(tarjeta(t)));
+  for (const k in RES) delete RES[k];
+  document.getElementById("resumen").style.display = "none";
+  document.getElementById("stamp").textContent = "sin chequear";
+});
+</script>
+</body>
+</html>
