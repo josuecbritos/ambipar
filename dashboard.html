@@ -357,7 +357,8 @@
       metaKg:         num(cf.meta_kg, 16000),
       metaCarton:     isNaN(mc) ? null : mc,                // kg/día; null = sin meta
       tolPrimera:     num(cd.margen_tolerancia, 5),       // min tolerancia 1ª palada
-      margenUltima:   num(cp.cumplimiento_ultima_margen_min, 10), // min antes de fin
+      margenUltima:   num(cp.cumplimiento_ultima_margen_min, 10), // min antes de fin (verde)
+      margenUltimaAmarillo: num(cp.cumplimiento_ultima_margen_amarillo_min, 5), // min extra de tolerancia (amarillo = 50%)
       timeout:        num(cp.timeout_inactividad_min, 10),
       limiteAlmuerzo: num(cp.limite_almuerzo_min, 60),
       horaInicio:     hhmmAMin(cp.hora_inicio_turno || '09:30'), // minutos desde medianoche
@@ -434,6 +435,14 @@
         operacion:     (f >= INICIO_KPI.operacion)     ? kpiOperacion(palDia[f] || [], f, C) : null,
         carton:        (f >= INICIO_KPI.carton)        ? kpiCarton(carDia[f] || []) : null
       };
+
+      // Criterio único: un día "corre" para cartón si hubo paladas y/o registro
+      // de cartón. Si hubo operación pero cero cartón, el día vale 0 kg contra
+      // su meta, en vez de quedar sin dato.
+      const p = porDia[f].paladas;
+      if (!porDia[f].carton && p && p.paladas > 0 && f >= INICIO_KPI.carton) {
+        porDia[f].carton = { kg: 0, recibido: 0 };
+      }
     });
 
     return { config: C, porDia, fechas, inicio: INICIO_KPI,
@@ -508,19 +517,23 @@
         });
       }});
 
-      // Operación: % de días que cumplen
+      // Operación: % de cumplimiento. La 1ª palada es binaria (0 ó 1); la última
+      // suma su puntaje (1 · 0.5 en banda de tolerancia · 0).
       let cumpleP = 0, cumpleU = 0, opN = 0;
       usar.forEach(d => { if (d.operacion) {
         opN++;
         if (d.operacion.cumplePrimera) cumpleP++;
-        if (d.operacion.cumpleUltima) cumpleU++;
+        cumpleU += Number(d.operacion.cumpleUltima) || 0;
       }});
 
-      // Cartón: suma de kg de salida (cartón separado) y de entrada (material
-      // recibido en andén). Se suma sobre TODOS los días con cartón.
-      const carDias = (SOLO_DIAS_CON_DATOS ? dias : dias).filter(d => d.carton);
-      let carKg = 0, carRecibido = 0, carN = 0;
-      carDias.forEach(d => { carKg += d.carton.kg; carRecibido += d.carton.recibido; carN++; });
+      // Cartón: criterio único de día computable → un día lun-vie "corre" si tuvo
+      // paladas y/o registro de cartón. Los kg se suman de los días con registro;
+      // nDias cuenta todos los días que corren, para que la meta del período
+      // (meta_diaria × nDias) sea coherente con lo sumado.
+      const carDias = dias.filter(d => conPaladas(d) || d.carton);
+      let carKg = 0, carRecibido = 0;
+      carDias.forEach(d => { if (d.carton) { carKg += d.carton.kg; carRecibido += d.carton.recibido; } });
+      const carN = carDias.length;
 
       out[k] = {
         clave: k, nDias: usar.length,
@@ -714,13 +727,25 @@
 
     const finT = finTurnoMin(fecha, C);
     const limitePrimera = C.horaInicio + C.tolPrimera;         // 9:30 + 5 = 9:35
-    const limiteUltima = (finT != null) ? finT - C.margenUltima : null; // fin - 10
+    const limiteUltima = (finT != null) ? finT - C.margenUltima : null; // fin - margen (verde)
+    // Banda amarilla: margen extra parametrizable. Dentro de esa banda el
+    // cumplimiento vale 0.5 (50%) en vez de 0.
+    const limiteUltimaAmarillo = (finT != null)
+      ? finT - C.margenUltima - C.margenUltimaAmarillo : null;
+
+    // cumpleUltima: 1 = cumple · 0.5 = dentro de la banda de tolerancia · 0 = no cumple
+    let cumpleUltima = null;
+    if (limiteUltima != null) {
+      if (ultimaMin >= limiteUltima) cumpleUltima = 1;
+      else if (ultimaMin >= limiteUltimaAmarillo) cumpleUltima = 0.5;
+      else cumpleUltima = 0;
+    }
 
     return {
       primera: `${String(primera.hora).padStart(2,'0')}:${String(primera.min).padStart(2,'0')}`,
       ultima:  `${String(ultima.hora).padStart(2,'0')}:${String(ultima.min).padStart(2,'0')}`,
       cumplePrimera: primeraMin <= limitePrimera,
-      cumpleUltima: (limiteUltima != null) ? ultimaMin >= limiteUltima : null
+      cumpleUltima
     };
   }
 
@@ -843,13 +868,15 @@
       ant && ant.disponibilidad ? deltaHTML(disp && disp.pct, ant.disponibilidad.pct, 'vs día ant.') : '',
       disp ? `${minAhhmm(disp.detenidoMin)} hrs de ${minAhhmm(disp.programado)} hrs detenidos` : null
     );
-    const opComb = op ? ((op.cumplePrimera ? 1 : 0) + (op.cumpleUltima ? 1 : 0)) / 2 * 100 : null;
+    const opComb = op ? ((op.cumplePrimera ? 1 : 0) + (Number(op.cumpleUltima) || 0)) / 2 * 100 : null;
+    // marca de la última palada: ✓ cumple · ~ dentro de tolerancia · ✗ no cumple
+    const marcaUltima = op ? (op.cumpleUltima === 1 ? '✓' : op.cumpleUltima === 0.5 ? '~' : '✗') : '';
     const cOp = card(
       'Arranque y Detención',
       `<span class="dot ${op ? dotClase(opComb, 100) : 'dot-gray'}"></span>${op ? fmt0(opComb) : '–'}<span class="card-unit"> %</span>`,
       'Meta 100% cumpl.',
       '',
-      op ? `1ª palada ${op.primera} ${op.cumplePrimera ? '✓' : '✗'} · última ${op.ultima} ${op.cumpleUltima ? '✓' : '✗'}` : null
+      op ? `1ª palada ${op.primera} ${op.cumplePrimera ? '✓' : '✗'} · última ${op.ultima} ${marcaUltima}` : null
     );
 
     // Entrada — Paladas + Faresín alimentando
@@ -1034,7 +1061,7 @@
       <div class="group-block"><div class="group-head">Salida</div><div class="group-cards">${cSalida}</div></div>
       <div class="group-block"><div class="group-head">Funcionamiento de la línea</div><div class="group-cards two">${cDisp}${cOp}</div></div>
       <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>
-      <div class="group-block"><div class="group-head">Pre Entrada</div><div class="group-cards">${cardCarton(sem.carton, C, sem1 && sem1.carton, sem.nDias, 'vs Sem-1')}</div></div>`;
+      <div class="group-block"><div class="group-head">Pre Entrada</div><div class="group-cards">${cardCarton(sem.carton, C, sem1 && sem1.carton, null, 'vs Sem-1')}</div></div>`;
 
     // ── Tabla detalle por día ──
     renderTablaSemanal(lunes, sem, sem1, sem2, sem3, mes, C);
@@ -1066,7 +1093,7 @@
         : '<td class="kpi-cell">–</td>').join('');
       const tot = p => p && p.enfardado ? celT(fmt1(kg2t(p.enfardado.resimple)), dotClase(p.enfardado.resimple, C.metaKg * (p.nDias || 5))) : '<td class="col-total">–</td>';
       const totMes = mes && mes.enfardado ? celT(fmt0(kg2t(mes.enfardado.resimple)), dotClase(mes.enfardado.resimple, C.metaKg * (mes.nDias || 20)), 'col-sep') : '<td class="col-total col-sep">–</td>';
-      return `<tr><td class="kpi-name">Enfardado Resimple (t)</td><td class="kpi-meta">16 t/día</td>${cels}${tot(sem).replace('col-total','col-total col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${totMes}</tr>`;
+      return `<tr><td class="kpi-name">Enfardado Resimple (t)</td><td class="kpi-meta">${fmt0(kg2t(C.metaKg))} t/día</td>${cels}${tot(sem).replace('col-total','col-total col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${totMes}</tr>`;
     }
     // filas informativas (sin semáforo)
     function filaInfo(nombre, getDia, getAgg) {
@@ -1089,7 +1116,10 @@
       const cels = dd.map(d => {
         const c = getCumpleDia(d);
         if (c == null) return '<td class="kpi-cell">–</td>';
-        return cel(getHora(d), c ? 'dot-green' : 'dot-red');
+        // c puede ser booleano (1ª palada) o puntaje 1 / 0.5 / 0 (última palada)
+        const v = Number(c);
+        const cls = v >= 1 ? 'dot-green' : (v > 0 ? 'dot-yellow' : 'dot-red');
+        return cel(getHora(d), cls);
       }).join('');
       const tot = (p, sep) => {
         const v = p ? getPctAgg(p) : null;
@@ -1113,7 +1143,7 @@
       }).join('');
       const tot = (p, sep) => {
         if (!p || !p.carton) return `<td class="col-total ${sep||''}">–</td>`;
-        const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.nDias || 5)) : 'dot-gray';
+        const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.carton.nDias || 5)) : 'dot-gray';
         return celT(fmt1(kg2t(p.carton.kg)), dot, sep || '');
       };
       return `<tr><td class="kpi-name">Cartón separado (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
@@ -1302,7 +1332,7 @@
       <div class="group-block"><div class="group-head">Salida</div><div class="group-cards">${cSalida}</div></div>
       <div class="group-block"><div class="group-head">Funcionamiento de la línea</div><div class="group-cards two">${cDisp}${cOp}</div></div>
       <div class="group-block"><div class="group-head">Entrada</div><div class="group-cards two">${cPal}${cFar}</div></div>
-      <div class="group-block"><div class="group-head">Pre Entrada</div><div class="group-cards">${cardCarton(mes.carton, C, mes1 && mes1.carton, mes.nDias, 'vs Mes-1')}</div></div>`;
+      <div class="group-block"><div class="group-head">Pre Entrada</div><div class="group-cards">${cardCarton(mes.carton, C, mes1 && mes1.carton, null, 'vs Mes-1')}</div></div>`;
 
     renderTablaMensual(mesKey, mes, mes1, mes2, C);
     renderBarrasFaresin('m_faresin_bar', 'm_faresin_leg', uf);
@@ -1327,7 +1357,7 @@
     function filaEnfardado() {
       const cels = ss.map(s => s && s.enfardado ? cel(fmt0(kg2t(s.enfardado.resimple)), dotClase(s.enfardado.resimple, C.metaKg * (s.nDias || 5))) : '<td class="kpi-cell">–</td>').join('');
       const tt = (p, sep) => p && p.enfardado ? celT(fmt0(kg2t(p.enfardado.resimple)), dotClase(p.enfardado.resimple, C.metaKg * (p.nDias || 20)), sep) : `<td class="col-total ${sep||''}">–</td>`;
-      return `<tr><td class="kpi-name">Enfardado Resimple (t)</td><td class="kpi-meta">16 t/día</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
+      return `<tr><td class="kpi-name">Enfardado Resimple (t)</td><td class="kpi-meta">${fmt0(kg2t(C.metaKg))} t/día</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
     }
     function filaPct(nombre, meta, getS, fmtv) {
       const cels = ss.map(s => { const v = s ? getS(s) : null; return v == null ? '<td class="kpi-cell">–</td>' : cel(fmtv(v), dotClase(v, meta)); }).join('');
@@ -1351,12 +1381,12 @@
       const metaTxt = hayMeta ? `${fmt1(kg2t(C.metaCarton))} t/día` : '–';
       const cels = ss.map(s => {
         if (!s || !s.carton) return '<td class="kpi-cell">–</td>';
-        const dot = hayMeta ? dotClase(s.carton.kg, C.metaCarton * (s.nDias || 5)) : 'dot-gray';
+        const dot = hayMeta ? dotClase(s.carton.kg, C.metaCarton * (s.carton.nDias || 5)) : 'dot-gray';
         return cel(fmt1(kg2t(s.carton.kg)), dot);
       }).join('');
       const tt = (p, sep) => {
         if (!p || !p.carton) return `<td class="col-total ${sep||''}">–</td>`;
-        const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.nDias || 20)) : 'dot-gray';
+        const dot = hayMeta ? dotClase(p.carton.kg, C.metaCarton * (p.carton.nDias || 20)) : 'dot-gray';
         return celT(fmt1(kg2t(p.carton.kg)), dot, sep);
       };
       return `<tr><td class="kpi-name">Cartón separado (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
