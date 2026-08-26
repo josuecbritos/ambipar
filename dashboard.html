@@ -85,6 +85,8 @@
   .dot-green { background: var(--green); }
   .dot-yellow { background: var(--yellow); }
   .dot-red { background: var(--red); }
+  /* sin dato o sin meta configurada: pelotita gris, no semáforo */
+  .dot-gray { background: var(--gray-300); }
 
   .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
   .bar-stack { display: flex; height: 28px; border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
@@ -220,7 +222,10 @@
   //  memoria (window.DATA). Por ahora la vista sigue con dummy;
   //  esta etapa solo confirma que la data llega bien.
   // ════════════════════════════════════════════════════════════
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxjvmJR-3qoi8I4s59GvEE4DicI4-UMjdUq_bbXDH9xco_OuGlz2mmVOkgHXkemvxFJ/exec';
+  // OJO: apuntando al despliegue DUMMY para probar el ingreso a la nave.
+  // Antes de publicar en producción hay que volver a la URL de producción:
+  // AKfycbxjvmJR-3qoi8I4s59GvEE4DicI4-UMjdUq_bbXDH9xco_OuGlz2mmVOkgHXkemvxFJ
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxIgd55zEDVHuCGGkzaOU6TNx7-aQ1ChPcljbI81NqpVspYtDgaOR_1djlH9Nq1JAqL/exec';
   const API_TOKEN = 'dashboard2026';
 
   // Zona horaria de operación (Chile). Convertimos los timestamps UTC del
@@ -267,6 +272,29 @@
     return t ? t.fecha : null;
   }
 
+  // FECHA de "Ingreso Resimple". El Apps Script la entrega como el texto literal
+  // de la celda (dd/mm/aaaa), sin transformarla. Acá se pasa a "YYYY-MM-DD" solo
+  // en memoria, para poder usarla como clave de día igual que las demás hojas.
+  function normFechaIngreso(v) {
+    if (v == null) return null;
+    const s = String(v).trim();
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    return null;
+  }
+
+  // Número que puede venir como texto con coma decimal ("104,7"). Si hay coma,
+  // los puntos son separador de miles; si no, se parsea directo.
+  function numCL(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : null;
+    if (v == null || v === '') return null;
+    let s = String(v).trim();
+    if (s.indexOf(',') !== -1) s = s.replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  }
+
   async function cargarDatos(fresh) {
     setStatus(fresh ? 'Actualizando…' : 'Cargando datos…');
     try {
@@ -292,9 +320,15 @@
         kg: Number(r.Kg) || 0,
         grupo: String(r.Grupo || '').trim().toLowerCase()
       }));
+      // Ingreso Resimple: un registro por camión pesado. Solo interesan el día
+      // y el peso neto; se descartan las filas sin fecha o sin peso válido.
+      const ing = (json.data.ingreso || []).map(r => ({
+        fecha: normFechaIngreso(r['FECHA']),
+        kg: numCL(r['PESO NETO [kg]'])
+      })).filter(r => r.fecha && r.kg != null);
 
       window.DATA = {
-        paladas: pal, detenciones: det, fardos: far, carton: car,
+        paladas: pal, detenciones: det, fardos: far, carton: car, ingreso: ing,
         config: json.config || {}, cargado: true,
         generado: json.generated_at
       };
@@ -418,6 +452,12 @@
       if (!r.fecha) return;
       (carDia[r.fecha] = carDia[r.fecha] || []).push(r);
     });
+    // Ingreso a la nave: kg totales por día. No entra al universo de fechas;
+    // solo se adosa a los días que ya existen por las otras hojas.
+    const ingDia = {};
+    (DATA.ingreso || []).forEach(r => {
+      ingDia[r.fecha] = (ingDia[r.fecha] || 0) + r.kg;
+    });
 
     // universo de fechas (todas las que aparezcan en cualquier hoja)
     const fechas = Array.from(new Set([
@@ -442,6 +482,13 @@
       const p = porDia[f].paladas;
       if (!porDia[f].carton && p && p.paladas > 0 && f >= INICIO_KPI.carton) {
         porDia[f].carton = { kg: 0, recibido: 0 };
+      }
+
+      // Kg que entraron a la nave ese día, guardados dentro de carton para que
+      // viajen junto al cartón separado en tarjetas, tablas y agregados.
+      // null (no 0) si ese día no hubo registro de pesaje: sin dato no hay %.
+      if (porDia[f].carton) {
+        porDia[f].carton.ingreso = (ingDia[f] != null) ? ingDia[f] : null;
       }
     });
 
@@ -531,8 +578,12 @@
       // nDias cuenta todos los días que corren, para que la meta del período
       // (meta_diaria × nDias) sea coherente con lo sumado.
       const carDias = dias.filter(d => conPaladas(d) || d.carton);
-      let carKg = 0, carRecibido = 0;
-      carDias.forEach(d => { if (d.carton) { carKg += d.carton.kg; carRecibido += d.carton.recibido; } });
+      let carKg = 0, carRecibido = 0, carIngreso = null;
+      carDias.forEach(d => { if (d.carton) {
+        carKg += d.carton.kg; carRecibido += d.carton.recibido;
+        // Ingreso: suma de los días que tienen dato. Si ninguno tiene, queda null.
+        if (d.carton.ingreso != null) carIngreso = (carIngreso || 0) + d.carton.ingreso;
+      }});
       const carN = carDias.length;
 
       out[k] = {
@@ -546,7 +597,7 @@
           pct: prog > 0 ? (disp / prog) * 100 : 0, causas } : null,
         operacion: opN ? { cumplePrimera: (cumpleP / opN) * 100, cumpleUltima: (cumpleU / opN) * 100,
           combinado: ((cumpleP + cumpleU) / (2 * opN)) * 100, nDias: opN } : null,
-        carton: carN ? { kg: carKg, recibido: carRecibido, nDias: carN } : null
+        carton: carN ? { kg: carKg, recibido: carRecibido, ingreso: carIngreso, nDias: carN } : null
       };
     });
     return out;
@@ -802,20 +853,31 @@
     return K.fechas.filter(f => K.porDia[f].paladas && K.porDia[f].paladas.paladas > 0);
   }
 
+  // % de cartón separado sobre el material que entró a la nave. Se calcula
+  // siempre desde los kg sumados (nunca promediando porcentajes de días), igual
+  // que disponibilidad y uso del faresín.
+  function pctCartonIngreso(carObj) {
+    if (!carObj || carObj.ingreso == null || !(carObj.ingreso > 0)) return null;
+    return (carObj.kg / carObj.ingreso) * 100;
+  }
+
   // Card de cartón reutilizable (diario/semanal/mensual).
-  //  carObj: { kg, recibido, [nDias] }   ·   ant: objeto carton del período previo
+  //  carObj: { kg, recibido, ingreso, [nDias] } · ant: objeto carton del período previo
   //  metaDias: nº de días para escalar la meta diaria (1 en diario).
   function cardCarton(carObj, C, ant, metaDias, etiquetaDelta) {
     const nd = metaDias || (carObj && carObj.nDias) || 1;
     const metaTotal = (C.metaCarton != null) ? C.metaCarton * nd : null;
     const kg = carObj ? carObj.kg : null;
-    const recibido = carObj ? carObj.recibido : null;
+    const ingreso = carObj ? carObj.ingreso : null;
     const t = kg != null ? kg2t(kg) : null;
     // Semáforo solo si hay meta; si metaCarton es null → dot-gray (sin color)
     const dot = dotClase(kg, metaTotal);
     const metaTxt = (metaTotal != null) ? `Meta ${fmt1(kg2t(metaTotal))} t` : 'Sin meta';
     const delta = (ant && etiquetaDelta) ? deltaHTML(kg, ant.kg, etiquetaDelta) : '';
-    const sub = (carObj && recibido != null) ? `Material recibido en andén: ${fmt1(kg2t(recibido))} t` : null;
+    const pctSep = pctCartonIngreso(carObj);
+    const sub = (ingreso != null)
+      ? `Ingreso a la nave: ${fmt1(kg2t(ingreso))} t${pctSep != null ? ` · ${fmt0(pctSep)}% separado` : ''}`
+      : null;
     return `
       <div class="card">
         <div class="card-label">Cartón</div>
@@ -894,7 +956,7 @@
       ant && ant.usoFaresin ? deltaHTML(ufAlim, ant.usoFaresin.pct.alimentando, 'vs día ant.') : ''
     );
 
-    // Pre Entrada — Cartón separado (t) + material recibido en andén (t)
+    // Pre Entrada — Cartón separado (t) + ingreso a la nave (t) + % separado
     const car = dia.carton;
     const cCarton = cardCarton(car, C, ant && ant.carton);
 
@@ -1148,11 +1210,16 @@
       };
       return `<tr><td class="kpi-name">Cartón separado (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tot(sem,'col-sep')}${tot(sem1)}${tot(sem2)}${tot(sem3)}${tot(mes,'col-sep')}</tr>`;
     }
-    // Material recibido en andén (entrada): informativa, sin semáforo, en toneladas
-    function filaCartonCamiones() {
-      return filaInfo('Material recibido en andén (t)',
-        d => d && d.carton ? fmt1(kg2t(d.carton.recibido)) : null,
-        p => p && p.carton ? fmt1(kg2t(p.carton.recibido)) : null);
+    // Ingreso a la nave (Resimple): informativa, sin semáforo, en toneladas
+    function filaIngresoNave() {
+      return filaInfo('Ingreso a la nave (t)',
+        d => d && d.carton && d.carton.ingreso != null ? fmt1(kg2t(d.carton.ingreso)) : null,
+        p => p && p.carton && p.carton.ingreso != null ? fmt1(kg2t(p.carton.ingreso)) : null);
+    }
+    // % de cartón separado sobre el ingreso: informativa, sin semáforo
+    function filaPctCartonSep() {
+      const f = o => { const v = pctCartonIngreso(o && o.carton); return v == null ? null : fmt0(v) + '%'; };
+      return filaInfo('Cartón separado (%)', f, f);
     }
 
     const html = `
@@ -1176,7 +1243,8 @@
         ${filaPct('Faresín alimentando', C.metaUsoFaresin, d => d && d.usoFaresin && d.usoFaresin.pct.alimentando, p => p.usoFaresin && p.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
         <tr class="group-row"><td colspan="12">Pre Entrada</td></tr>
         ${filaCartonTon()}
-        ${filaCartonCamiones()}
+        ${filaIngresoNave()}
+        ${filaPctCartonSep()}
       </tbody>`;
     document.getElementById('s_tabla').innerHTML = html;
     document.getElementById('s_nota_horarios').textContent = notaHorarios(C);
@@ -1391,7 +1459,10 @@
       };
       return `<tr><td class="kpi-name">Cartón separado (t)</td><td class="kpi-meta">${metaTxt}</td>${cels}${tt(mes,'col-sep')}${tt(mes1)}${tt(mes2)}</tr>`;
     }
-    const filaCartonCamiones = () => filaInfoMes('Material recibido en andén (t)', p => p.carton ? fmt1(kg2t(p.carton.recibido)) : null);
+    const filaIngresoNave = () => filaInfoMes('Ingreso a la nave (t)',
+      p => p.carton && p.carton.ingreso != null ? fmt1(kg2t(p.carton.ingreso)) : null);
+    const filaPctCartonSep = () => filaInfoMes('Cartón separado (%)',
+      p => { const v = pctCartonIngreso(p.carton); return v == null ? null : fmt0(v) + '%'; });
 
     const html = `
       <thead><tr>
@@ -1413,7 +1484,8 @@
         ${filaPct('Faresín alimentando', C.metaUsoFaresin, s => s.usoFaresin && s.usoFaresin.pct.alimentando, v => fmt0(v) + '%')}
         <tr class="group-row"><td colspan="${nCols}">Pre Entrada</td></tr>
         ${filaCartonTon()}
-        ${filaCartonCamiones()}
+        ${filaIngresoNave()}
+        ${filaPctCartonSep()}
       </tbody>`;
     document.getElementById('m_tabla').innerHTML = html;
   }
